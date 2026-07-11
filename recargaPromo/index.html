@@ -11,14 +11,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width,viewport-fit=cover">
-  <meta name="description" content="Chinesinha777 — cassino online. Slots, bônus e PIX.">
+  <meta name="description" content="Chinesinha777 â€” cassino online. Slots, bÃ´nus e PIX.">
   <meta name="theme-color" content="#171512">
   <meta name="format-detection" content="telephone=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Chinesinha777.bet — O cassino está Bombando!</title>
+  <title>Chinesinha777.bet â€” O cassino estÃ¡ Bombando!</title>
 
-  <!-- SPA hash fallback: /recharge → /#/recharge (GH Pages sem rewrite) -->
+  <!-- SPA hash fallback: /recharge â†’ /#/recharge (GH Pages sem rewrite) -->
   <script>
   (function () {
     try {
@@ -28,7 +28,7 @@
       if (/^\/(assets|static|css|font)\//i.test(p)) return;
       var route = p.replace(/\/+$/, '');
       if (!route || route === '/') return;
-      // Já em hash correto (ex: /recharge/#/recharge) — normaliza para root hash
+      // JÃ¡ em hash correto (ex: /recharge/#/recharge) â€” normaliza para root hash
       var h = location.hash || '';
       if (h.indexOf('#/') === 0) {
         location.replace('/' + h + (location.search || ''));
@@ -39,11 +39,11 @@
   })();
   </script>
 
-  <!-- ANTES do SPA: reescreve chinesinha777.bet/static → /static (evita timeout offline) -->
+  <!-- ANTES do SPA: reescreve chinesinha777.bet/static â†’ /static (evita timeout offline) -->
   <script src="/static/asset-origin-fix-launch202607111628.js"></script>
-  <!-- Produção estática: SW off + /gofun → Supabase Edge -->
+  <!-- ProduÃ§Ã£o estÃ¡tica: SW off + /gofun â†’ Supabase Edge -->
   <script src="/static/gofun-edge-bridge-pwd1783800353.js"></script>
-  <script src="/static/register-fields-inject-regv8mrgs91xr.js"></script>
+  <script src="/static/register-fields-inject-valv91783802000.js"></script>
 
 
 <!-- Guard Meta Pixel: 1x fbevents.js + 1 init por pixel ID (anti "conflicting versions") -->
@@ -53,7 +53,7 @@
     w.__ch7FbqInitGuard=1;
     w.__ch7FbInitedIds=w.__ch7FbInitedIds||Object.create(null);
     var inited=w.__ch7FbInitedIds;
-    var fbeventsAllowed=1; // só o 1º fbevents.js entra
+    var fbeventsAllowed=1; // sÃ³ o 1Âº fbevents.js entra
 
     function isFbeventsUrl(v){
       var s=String(v||'');
@@ -62,7 +62,7 @@
     function blockFbevents(v){
       if(!isFbeventsUrl(v)) return false;
       if(fbeventsAllowed>0){ fbeventsAllowed=0; return false; }
-      return true; // bloqueia 2º+
+      return true; // bloqueia 2Âº+
     }
     function guardScriptEl(el){
       if(!el || el.__ch7FbGuard) return el;
@@ -75,7 +75,7 @@
             configurable:true,enumerable:true,
             get:function(){ return desc.get.call(this); },
             set:function(v){
-              if(blockFbevents(v)) return; // drop 2º fbevents
+              if(blockFbevents(v)) return; // drop 2Âº fbevents
               return desc.set.call(this,v);
             }
           });
@@ -101,7 +101,7 @@
       };
     }catch(e){}
 
-    // appendChild / insertBefore — GTM às vezes injeta script já montado
+    // appendChild / insertBefore â€” GTM Ã s vezes injeta script jÃ¡ montado
     try{
       function wrapInsert(proto, method){
         var orig=proto[method];
@@ -111,7 +111,7 @@
             if(node && node.tagName==='SCRIPT'){
               var src=node.src || (node.getAttribute && node.getAttribute('src')) || '';
               if(blockFbevents(src)){
-                // não injeta 2º fbevents
+                // nÃ£o injeta 2Âº fbevents
                 return node;
               }
               guardScriptEl(node);
@@ -195,7 +195,7 @@
     }catch(e){}
   })(window,document);
   </script>
-  <!-- Google Tag Manager (só em domínio de produção — evita ERR_CONNECTION_TIMED_OUT no local) -->
+  <!-- Google Tag Manager (sÃ³ em domÃ­nio de produÃ§Ã£o â€” evita ERR_CONNECTION_TIMED_OUT no local) -->
   <script>
   (function(w,d,s,l,i){
     try{
@@ -280,7 +280,7 @@
   <link rel="dns-prefetch" href="https://pgsoft6.igamewin.com">
   <link rel="dns-prefetch" href="https://painel.royalgamess.com">
 
-  <!-- Paths ABSOLUTOS (/assets) — NÃO adicionar ?v= no main module (quebra import.meta.url do Vite) -->
+  <!-- Paths ABSOLUTOS (/assets) â€” NÃƒO adicionar ?v= no main module (quebra import.meta.url do Vite) -->
   <link rel="modulepreload" href="/assets/index-Bxx4mSPk.js" crossorigin>
   <link rel="preload" href="/assets/index-BqSTfsO5.css" as="style" crossorigin>
   <link rel="preload" href="/static/brand/logo-horizontal.png?v=ch7-13" as="image" type="image/png">
@@ -313,8 +313,8 @@
   <div id="q-app"></div>
   <div id="ch7-fail" role="alert">
     <div class="box">
-      <h1>Não foi possível carregar</h1>
-      <p>O site não iniciou. Toque em recarregar (limpa cache e tenta de novo).</p>
+      <h1>NÃ£o foi possÃ­vel carregar</h1>
+      <p>O site nÃ£o iniciou. Toque em recarregar (limpa cache e tenta de novo).</p>
       <button type="button" id="ch7-fail-btn">Recarregar site</button>
     </div>
   </div>
@@ -324,10 +324,10 @@
   <!-- Brand inject: header + footer (defer: depois do module) -->
   <script defer src="/static/brand-inject-launch202607111628.js"></script>
   <script defer src="/static/supabase-boot-launch202607111628.js"></script>
-  <script defer src="/static/register-fields-inject-regv8mrgs91xr.js"></script>
+  <script defer src="/static/register-fields-inject-valv91783802000.js"></script>
   <script defer src="/static/forgot-password-inject-pwd1783800353.js?v=1"></script>
 
-  <!-- Injects com defer: não competem com o mount do Vue no #q-app -->
+  <!-- Injects com defer: nÃ£o competem com o mount do Vue no #q-app -->
   <script defer src="/static/deposit-cpf-inject-launch202607111628.js"></script>
   <script defer src="/static/deposit-pix-inject-pixuxmrgsi8vj.js"></script>
   <script defer src="/static/deposit-bonus-inject-fixmrgrug5u.js"></script>
@@ -353,12 +353,12 @@
       if(app && app.children && app.children.length){ ch7BootHide(); _mo.disconnect(); }
     });
     _mo.observe(document.documentElement,{childList:true,subtree:true});
-    // se SPA montar, esconde boot; se falhar, mostra botão recarregar
+    // se SPA montar, esconde boot; se falhar, mostra botÃ£o recarregar
     setTimeout(function(){
       var app=document.getElementById('q-app');
       if(app && app.children && app.children.length){ ch7BootHide(); return; }
       if(window.__ch7MainFail){ ch7ShowFail(); return; }
-      // dá mais tempo em 3G / cold start
+      // dÃ¡ mais tempo em 3G / cold start
       setTimeout(function(){
         var a=document.getElementById('q-app');
         if(a && a.children && a.children.length){ ch7BootHide(); return; }
