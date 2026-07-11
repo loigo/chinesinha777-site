@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "data": [
+    {
+      "id": "first-200",
+      "title": "Primeiro depósito 200%",
+      "message": "No seu primeiro depósito, receba até 200% de bônus. Válido para pacotes promocionais da loja.",
+      "bonusType": "PERCENTAGE",
+      "bonusValue": 200,
+      "maxBonusValue": 500,
+      "minimumRechargeValue": 30,
+      "triggerType": "FIRST_RECHARGE",
+      "isActive": true,
+      "ctaLabel": "Depositar",
+      "bannerUrl": "/static/banners/banner-2.webp"
+    },
+    {
+      "id": "daily-100",
+      "title": "Bônus de recarga",
+      "message": "Deposite e ganhe bônus extra conforme o pacote escolhido na loja.",
+      "bonusType": "PERCENTAGE",
+      "bonusValue": 100,
+      "maxBonusValue": 300,
+      "minimumRechargeValue": 30,
+      "triggerType": "ANY",
+      "isActive": true,
+      "ctaLabel": "Detalhe",
+      "bannerUrl": "/static/banners/banner-3.webp"
+    }
+  ]
+}
