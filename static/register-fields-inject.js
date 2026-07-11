@@ -853,6 +853,23 @@
         }
       }
 
+      // Campos nativos "Novo Telefone" / "Nova Senha" (fora de .q-field)
+      var allInputs = root.querySelectorAll('input, textarea');
+      for (var ii = 0; ii < allInputs.length; ii++) {
+        var inp = allInputs[ii];
+        if (inp.closest('#' + FORM_ID)) continue;
+        var ph = String(inp.placeholder || '');
+        var nm = String(inp.name || '');
+        if (
+          /Novo\s*Telefone|Nova\s*Senha|New\s*Phone|New\s*Password/i.test(ph) ||
+          /Novo\s*Telefone|Nova\s*Senha/i.test(nm)
+        ) {
+          hideEl(inp);
+          var row = inp.closest('.q-field, .custom-input, .row, .q-input, label, .form-item') || inp.parentElement;
+          if (row && !row.closest('#' + FORM_ID)) hideEl(row);
+        }
+      }
+
       var btns = root.querySelectorAll('button, .q-btn, [role="button"]');
       for (var i = 0; i < btns.length; i++) {
         var b = btns[i];
