@@ -18,18 +18,26 @@
   <meta name="mobile-web-app-capable" content="yes">
   <title>Chinesinha777.bet â€” O cassino estÃ¡ Bombando!</title>
 
-  <!-- SPA hash fallback: /recharge â†’ /#/recharge (GH Pages sem rewrite) -->
+  <!-- SPA hash fallback + painel admin redirect -->
   <script>
   (function () {
     try {
+      var ADMIN =
+        'https://bgajbbvgcqqkbvbtwnec.supabase.co/storage/v1/object/public/web/admin/index.html';
+      var h = location.hash || '';
+      // #/painel ou #/admin → painel admin real (não é rota do cassino SPA)
+      if (/^#\/(painel|admin)(\/|$)/i.test(h)) {
+        location.replace(ADMIN + (location.search || ''));
+        return;
+      }
       var p = location.pathname || '/';
       if (p === '/' || p === '/index.html') return;
+      // painel/admin são páginas estáticas de redirect — NÃO virar /#/painel
+      if (/^\/(painel|admin)(\/|$)/i.test(p)) return;
       if (/\.(html?|js|css|json|map|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|txt|xml|webmanifest|mp3|mp4|wasm)$/i.test(p)) return;
       if (/^\/(assets|static|css|font)\//i.test(p)) return;
       var route = p.replace(/\/+$/, '');
       if (!route || route === '/') return;
-      // JÃ¡ em hash correto (ex: /recharge/#/recharge) â€” normaliza para root hash
-      var h = location.hash || '';
       if (h.indexOf('#/') === 0) {
         location.replace('/' + h + (location.search || ''));
         return;
