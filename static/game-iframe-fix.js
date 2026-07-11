@@ -71,21 +71,23 @@
     return false;
   }
 
-  // Em produção estática (GH Pages) NÃO proxy via /game-shell (não existe server.mjs).
-  // Abrir jogo direto na URL do provider evita stub/CSP e formatarURL quebrado.
+  // Proxy game-shell: local usa same-origin /game-shell; prod usa Edge Supabase
+  // (permite injetar tradução de popup de vitória + formatarURL).
+  var EDGE_GAME_SHELL =
+    'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/game-shell';
+
   function isStaticProdHost() {
     var h = location.hostname || '';
     return h === 'chinesinha777.bet' || h === 'www.chinesinha777.bet' || /\.github\.io$/i.test(h);
   }
 
   function needsProxy(src) {
-    if (isStaticProdHost()) return false;
     var s = String(src || '');
-    if (!s || /\/game-shell\b/i.test(s)) return false;
+    if (!s || /\/game-shell\b/i.test(s) || /functions\/v1\/game-shell/i.test(s)) return false;
     if (isPixSrc(s)) return false;
     try {
       var u = new URL(s, location.href);
-      if (u.origin === location.origin) return false;
+      if (u.origin === location.origin && !isGameSrc(s)) return false;
       return isGameSrc(s);
     } catch (e) {
       return false;
@@ -93,9 +95,20 @@
   }
 
   function toProxyUrl(src) {
-    if (isStaticProdHost()) return src;
     try {
       var abs = new URL(src, location.href).href;
+      // local: front server.mjs
+      if (
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1' ||
+        location.port === '5177'
+      ) {
+        return location.origin + '/game-shell?u=' + encodeURIComponent(abs);
+      }
+      // produção estática → Edge game-shell (tradução + patches)
+      if (isStaticProdHost()) {
+        return EDGE_GAME_SHELL + '?u=' + encodeURIComponent(abs);
+      }
       return location.origin + '/game-shell?u=' + encodeURIComponent(abs);
     } catch (e) {
       return src;
