@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Pagamento PIX — Chinesinha777</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#171512;color:#fff;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:12px}
+  .card{background:linear-gradient(180deg,#242018 0%,#1a1814 100%);border:1px solid rgba(246,207,135,.28);
+    border-radius:18px;padding:20px 18px 22px;max-width:400px;width:100%;
+    box-shadow:0 12px 40px rgba(0,0,0,.45)}
+  h1{font-size:1.05rem;color:#f6cf87;margin:0 0 4px;font-weight:800;letter-spacing:.02em}
+  .order{font-size:12px;color:#8a8680;margin:0 0 10px;word-break:break-all}
+  .amount{font-size:2rem;font-weight:800;color:#ffe13c;margin:4px 0 6px;line-height:1.1}
+  .bonus{font-size:12px;color:#7bfe7c;margin:0 0 10px}
+  #status{font-size:14px;color:#c8c2b8;margin:0 0 14px;min-height:1.3em}
+  #status .ok{color:#7bfe7c;font-weight:700}
+  #status .wait{color:#f6cf87}
+  .qr-wrap{display:flex;flex-direction:column;align-items:center;margin:0 0 14px}
+  .qr-box{background:#fff;border-radius:14px;padding:12px;box-shadow:0 4px 20px rgba(0,0,0,.35);
+    display:flex;align-items:center;justify-content:center;min-height:260px;min-width:260px}
+  .qr-box img,.qr-box canvas{display:block;width:240px;height:240px}
+  .qr-hint{font-size:12px;color:#aeb7bb;margin:10px 0 0;text-align:center;line-height:1.4}
+  .label{font-size:12px;color:#aeb7bb;margin:0 0 6px;font-weight:600}
+  .pix{word-break:break-all;background:#0c0b09;border:1px solid rgba(246,207,135,.15);
+    border-radius:10px;padding:12px;font-size:11px;line-height:1.45;color:#d4cfc6;
+    max-height:96px;overflow:auto;user-select:all}
+  button{width:100%;margin-top:10px;padding:13px 14px;border:0;border-radius:12px;
+    background:linear-gradient(180deg,#ffe566,#f0b429 55%,#d4920a);color:#1a1208;
+    font-weight:800;font-size:.95rem;cursor:pointer;letter-spacing:.02em}
+  button:active{transform:scale(.98)}
+  button.secondary{background:#323749;color:#fff;font-weight:700}
+  button.copied{background:linear-gradient(180deg,#86efac,#22c55e)!important;color:#052e16}
+  .err{color:#f87171;font-size:13px;text-align:center;padding:20px 8px}
+  #success{
+    display:none;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;
+    padding:16px;background:radial-gradient(ellipse at 50% 30%,#2a1a08 0%,#0a0908 70%);
+  }
+  #success.show{display:flex}
+  #success .s-card{
+    position:relative;max-width:400px;width:100%;text-align:center;
+    background:linear-gradient(165deg,#2c2114 0%,#1a140e 55%,#12100c 100%);
+    border:1px solid rgba(246,207,135,.4);border-radius:22px;padding:28px 22px 24px;
+    box-shadow:0 20px 60px rgba(0,0,0,.55),0 0 40px rgba(246,207,135,.12);
+  }
+  .s-check{
+    width:84px;height:84px;margin:0 auto 14px;border-radius:50%;
+    background:linear-gradient(145deg,#86efac,#16a34a);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 28px rgba(34,197,94,.45);
+  }
+  .s-check svg{width:44px;height:44px}
+  .s-title{font:800 1.25rem/1.25 system-ui,sans-serif;color:#f6cf87;margin:0 0 8px}
+  .s-msg{font:500 14px/1.5 system-ui,sans-serif;color:rgba(255,255,255,.82);margin:0 0 6px}
+  .s-amount{font:800 1.85rem/1.1 system-ui,sans-serif;color:#ffe13c;margin:10px 0 8px}
+  .s-sub{font:500 13px/1.45 system-ui,sans-serif;color:#aeb7bb;margin:0 0 18px}
+  body.paid-mode .card #payBlock{display:none}
+  body.paid-mode #success{display:flex}
+</style>
+</head>
+<body>
+  <div id="success" role="status" aria-live="polite">
+    <div class="s-card">
+      <div class="s-check" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#052e16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h2 class="s-title">Obrigado por depositar!</h2>
+      <p class="s-msg">Seu depósito de</p>
+      <div class="s-amount" id="sAmount">R$ —</div>
+      <p class="s-msg">foi confirmado com sucesso.</p>
+      <p class="s-sub">Seu saldo já foi atualizado na carteira!</p>
+      <button type="button" id="btnPlay">Continuar jogando</button>
+    </div>
+  </div>
+  <div class="card" id="card">
+    <h1>Pagamento PIX</h1>
+    <p class="order" id="orderLabel">Carregando pedido…</p>
+    <div id="payBlock">
+      <div class="amount" id="amount">R$ —</div>
+      <p class="bonus" id="bonus" style="display:none"></p>
+      <p id="status"><span class="wait">Aguardando pagamento…</span></p>
+      <div class="qr-wrap">
+        <div class="qr-box" id="qrBox"><span style="color:#333;font-size:13px">Gerando QR…</span></div>
+        <p class="qr-hint">Abra o app do seu banco e escaneie o QR Code<br/>ou use o copia e cola abaixo.</p>
+      </div>
+      <p class="label">PIX Copia e Cola</p>
+      <div class="pix" id="pixCode">—</div>
+      <button type="button" id="btnCopy">Copiar código PIX</button>
+      <button type="button" class="secondary" id="btnClose">Fechar</button>
+    </div>
+    <div id="err" class="err" style="display:none"></div>
+  </div>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+(function () {
+  var EDGE = 'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/gofun';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
+  var params = new URLSearchParams(location.search);
+  var orderId = params.get('order') || params.get('id') || '';
+  var paid = false;
+
+  function brl(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function showPaid(amount) {
+    paid = true;
+    document.body.classList.add('paid-mode');
+    document.getElementById('success').classList.add('show');
+    document.getElementById('sAmount').textContent = 'R$ ' + brl(amount);
+    document.getElementById('status').innerHTML = '<span class="ok">Pagamento confirmado!</span>';
+  }
+
+  function showErr(msg) {
+    document.getElementById('payBlock').style.display = 'none';
+    var e = document.getElementById('err');
+    e.style.display = 'block';
+    e.textContent = msg;
+  }
+
+  function renderQr(pix) {
+    var box = document.getElementById('qrBox');
+    box.innerHTML = '';
+    if (window.QRCode && QRCode.toCanvas) {
+      var c = document.createElement('canvas');
+      box.appendChild(c);
+      QRCode.toCanvas(c, pix, { width: 240, margin: 1 }, function (err) {
+        if (err) {
+          box.innerHTML = '<img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(pix) + '"/>';
+        }
+      });
+    } else {
+      box.innerHTML = '<img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(pix) + '"/>';
+    }
+  }
+
+  async function loadOrder() {
+    if (!orderId) {
+      showErr('Pedido não informado. Volte e gere um novo PIX.');
+      return;
+    }
+    document.getElementById('orderLabel').textContent = 'Pedido: ' + orderId;
+    try {
+      var res = await fetch(EDGE + '/order/status?order=' + encodeURIComponent(orderId), {
+        headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
+      });
+      var data = await res.json();
+      if (!data.ok || !data.order) {
+        showErr('Pedido não encontrado. Gere um novo depósito.');
+        return;
+      }
+      var o = data.order;
+      document.getElementById('amount').textContent = 'R$ ' + brl(o.amountReais);
+      if (o.bonusReais > 0) {
+        var b = document.getElementById('bonus');
+        b.style.display = 'block';
+        b.textContent = '+ R$ ' + brl(o.bonusReais) + ' de bônus';
+      }
+      if (o.status === 'paid' || o.credited) {
+        showPaid(o.amountReais);
+        return;
+      }
+      var pix = String(o.pixCode || '').trim();
+      if (!pix) {
+        showErr('Código PIX ainda não disponível. Tente novamente em instantes.');
+        return;
+      }
+      document.getElementById('pixCode').textContent = pix;
+      renderQr(pix);
+    } catch (e) {
+      showErr('Falha ao carregar pedido. Verifique a conexão.');
+    }
+  }
+
+  async function poll() {
+    if (paid || !orderId) return;
+    try {
+      var res = await fetch(EDGE + '/order/status?order=' + encodeURIComponent(orderId), {
+        headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
+      });
+      var data = await res.json();
+      if (data.ok && data.order && (data.order.status === 'paid' || data.order.credited)) {
+        showPaid(data.order.amountReais);
+      }
+    } catch (e) {}
+  }
+
+  document.getElementById('btnCopy').onclick = function () {
+    var t = document.getElementById('pixCode').textContent || '';
+    if (!t || t === '—') return;
+    navigator.clipboard.writeText(t).then(function () {
+      var b = document.getElementById('btnCopy');
+      b.textContent = 'Copiado!';
+      b.classList.add('copied');
+      setTimeout(function () {
+        b.textContent = 'Copiar código PIX';
+        b.classList.remove('copied');
+      }, 2000);
+    }).catch(function () {
+      var r = document.createRange();
+      r.selectNodeContents(document.getElementById('pixCode'));
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+    });
+  };
+  document.getElementById('btnClose').onclick = function () {
+    try { window.parent.postMessage({ type: 'ch7-pix-close' }, '*'); } catch (e) {}
+    if (window.history.length > 1) history.back();
+    else location.href = '/';
+  };
+  document.getElementById('btnPlay').onclick = function () {
+    try { window.parent.postMessage({ type: 'ch7-pix-paid' }, '*'); } catch (e) {}
+    location.href = '/#/';
+  };
+
+  loadOrder();
+  setInterval(poll, 4000);
+})();
+</script>
+</body>
+</html>
