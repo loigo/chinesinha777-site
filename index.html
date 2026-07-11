@@ -12,6 +12,8 @@
 
   <!-- ANTES do SPA: reescreve chinesinha777.bet/static → /static (evita timeout offline) -->
   <script src="/static/asset-origin-fix.js?v=1"></script>
+  <!-- Produção estática: SW off + /gofun → Supabase Edge -->
+  <script src="/static/gofun-edge-bridge.js?v=2"></script>
 
   <!-- Guard Meta Pixel: 1x fbevents.js + 1 init por pixel ID (anti "conflicting versions") -->
   <script>
@@ -222,23 +224,19 @@
     @keyframes ch7pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
   </style>
 
-  <!-- Atualiza SW v8 (sem página Offline) e limpa só caches antigos — não desliga SW a cada load -->
+  <!-- SW: desregistrar (GitHub Pages /static/sw.js quebra scope /) -->
   <script>
   (function(){
     try{
       if(window.caches&&caches.keys){
         caches.keys().then(function(keys){
-          keys.forEach(function(k){
-            if(/ch7-static-v[1-7]|workbox|precache/i.test(k)){
-              caches.delete(k).catch(function(){});
-            }
-          });
+          keys.forEach(function(k){ caches.delete(k).catch(function(){}); });
         }).catch(function(){});
       }
       if('serviceWorker' in navigator){
         navigator.serviceWorker.getRegistrations().then(function(regs){
           regs.forEach(function(r){
-            try{ r.update(); }catch(e){}
+            try{ r.unregister(); }catch(e){}
           });
         }).catch(function(){});
       }

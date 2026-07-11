@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jogo</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0f14; color: #f5b942; font-family: system-ui, sans-serif; }
+    .box { display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 24px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div>
+      <p>Launch de jogo: use o app com API Supabase configurada (RoyalGames).</p>
+      <p style="opacity:.7;font-size:14px">game-shell estático — sem CSP bloqueante</p>
+    </div>
+  </div>
+  <script>
+    (function () {
+      try {
+        var q = new URLSearchParams(location.search);
+        var u = q.get('u') || q.get('url');
+        if (u) {
+          // se for URL de jogo externa, redireciona
+          if (/^https?:\/\//i.test(u) && !/chinesinha777\.bet/i.test(u)) {
+            location.replace(u);
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>
