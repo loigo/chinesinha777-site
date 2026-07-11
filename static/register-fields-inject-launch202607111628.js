@@ -6,12 +6,15 @@
  */
 (function () {
   'use strict';
-  if (window.__ch7RegisterFieldsV6) return;
+  if (window.__ch7RegisterFieldsV7) return;
+  window.__ch7RegisterFieldsV7 = 1;
   window.__ch7RegisterFieldsV6 = 1;
 
-  var STYLE_ID = 'ch7-register-fields-style-v6';
+  var STYLE_ID = 'ch7-register-fields-style-v7';
   var BOX_ID = 'ch7-register-extra-fields';
   var CRYPTO_KEY = '9EzYC7IZE1PTREu8';
+  /** último clique do usuário: 'login' | 'register' | null */
+  var lastAuthMode = null;
 
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
@@ -69,17 +72,44 @@
     var root = dialogRoot();
     if (!root) return false;
 
+    // 0) clique recente do usuário (mais confiável no SPA)
+    if (lastAuthMode === 'register') return true;
+    if (lastAuthMode === 'login') return false;
+
+    // 1) aba ativa (várias classes SPA/Quasar)
+    var tabs = root.querySelectorAll(
+      '.tab, .tabs > *, [class*="tab"], .q-tab, .loginRegister span, .loginRegister div',
+    );
+    for (var ti = 0; ti < tabs.length; ti++) {
+      var tab = tabs[ti];
+      var tabTxt = (tab.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/^(Login|Entrar|Registrar(-se)?|Cadastro|Register|Sign\s*up)$/i.test(tabTxt)) {
+        // texto curto com registrar
+        if (!/Registrar|Cadastro|Register/i.test(tabTxt) || tabTxt.length > 24) continue;
+      }
+      var cls = String(tab.className || '');
+      var active =
+        /\bactive\b|q-tab--active|selected|is-active/i.test(cls) ||
+        tab.getAttribute('aria-selected') === 'true' ||
+        tab.getAttribute('aria-current') === 'true';
+      if (active) {
+        if (/^Login$|^Entrar$/i.test(tabTxt)) return false;
+        if (/Registrar|Cadastro|Register|Sign\s*up/i.test(tabTxt)) return true;
+      }
+    }
+
     var activeTab =
       root.querySelector('.tab.active') ||
       root.querySelector('.tabs .active') ||
       root.querySelector('[class*="tab"].active') ||
       root.querySelector('.q-tab--active');
     if (activeTab) {
-      var tabTxt = (activeTab.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/^Login$|^Entrar$/i.test(tabTxt)) return false;
-      if (/Registrar|Cadastro|Sign\s*up|Register/i.test(tabTxt)) return true;
+      var at = (activeTab.textContent || '').replace(/\s+/g, ' ').trim();
+      if (/^Login$|^Entrar$/i.test(at)) return false;
+      if (/Registrar|Cadastro|Sign\s*up|Register/i.test(at)) return true;
     }
 
+    // 2) botão submit principal
     var buttons = root.querySelectorAll('button, .q-btn, [type="submit"]');
     for (var i = 0; i < buttons.length; i++) {
       var b = buttons[i];
@@ -89,11 +119,18 @@
       if (/^Registrar(-se)?$/i.test(t) || /Cadastrar/i.test(t)) return true;
     }
 
+    // 3) placeholder telefone
     var phone = findPhoneInput();
     if (phone) {
       var ph = String(phone.getAttribute('placeholder') || phone.placeholder || '');
       if (/Novo\s*Telefone/i.test(ph)) return true;
       if (/Telefone ou E-?mail/i.test(ph) || /^Telefone$/i.test(ph.trim())) return false;
+    }
+
+    // 4) texto visível "Nova Senha" no dialog = cadastro
+    var rootTxt = (root.innerText || root.textContent || '').slice(0, 400);
+    if (/Nova\s*Senha/i.test(rootTxt) && /Novo\s*Telefone|Registrar/i.test(rootTxt)) {
+      return true;
     }
 
     var href = String(location.href || '') + String(location.hash || '');
@@ -237,7 +274,8 @@
   }
 
   function injectFields() {
-    if (!isRegisterContext()) {
+    var reg = isRegisterContext();
+    if (!reg) {
       removeExtraFields();
       try {
         adaptLoginIdentityField();
@@ -246,7 +284,14 @@
     }
 
     ensureStyle();
-    if (document.getElementById(BOX_ID)) return;
+    // se já existe, garante que continua no DOM (SPA pode remountar)
+    var existing = document.getElementById(BOX_ID);
+    if (existing && document.body.contains(existing)) return;
+    if (existing) {
+      try {
+        existing.remove();
+      } catch (e) {}
+    }
 
     var phone = findPhoneInput();
     var pass = findPasswordInput();
@@ -590,19 +635,41 @@
     function (ev) {
       var el = ev.target;
       if (!el || !el.closest) return;
+      // detecta clique nas abas Login / Registrar
+      var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      var clickable = el.closest(
+        'button, .q-btn, .tab, .q-tab, [class*="tab"], span, div, a',
+      );
+      if (clickable) {
+        var ct = (clickable.textContent || '').replace(/\s+/g, ' ').trim();
+        if (/^(Login|Entrar)$/i.test(ct) || /^Login$/i.test(t)) lastAuthMode = 'login';
+        if (
+          /^(Registrar(-se)?|Cadastro|Register|Sign\s*up|Cadastrar)$/i.test(ct) ||
+          /Registrar/i.test(t)
+        ) {
+          lastAuthMode = 'register';
+        }
+      }
       if (
         el.closest(
           '.loginRegister, .login-dialog, .q-dialog, button, .q-btn, [class*="login"], [class*="Login"], [class*="regist"]',
         )
       ) {
         schedule();
+        setTimeout(schedule, 80);
+        setTimeout(schedule, 250);
+        setTimeout(schedule, 600);
       }
     },
     true,
   );
-  setTimeout(schedule, 400);
+  setTimeout(schedule, 200);
+  setTimeout(schedule, 600);
   setTimeout(schedule, 1200);
   setTimeout(schedule, 2500);
+  setInterval(function () {
+    if (dialogRoot()) schedule();
+  }, 1500);
 
   if (!window.__ch7RegFieldsMoV6) {
     window.__ch7RegFieldsMoV6 = 1;
