@@ -209,19 +209,9 @@
   }
 
   function loadUrls() {
-    var urls = [];
-    // 1) JSON estático no GitHub Pages (sem 404)
-    urls.push(location.origin + '/static/deposit-bonuses.json');
-    // 2) Edge gofun shop/info (promoBanners se houver)
-    if (EDGE) {
-      // GET order status style won't work for shop; use plain POST via fetch later
-    }
-    // 3) Só em local: admin painel
-    if (!isStaticProd()) {
-      urls.push(location.origin + '/painel/api/public/deposit-bonuses');
-      urls.push('http://127.0.0.1:3020/painel/api/public/deposit-bonuses');
-    }
-    return urls;
+    // Nunca chamar /painel em produção (404 + ruído no console).
+    // Só JSON estático; fallback Edge em loadFromGofunShop().
+    return [location.origin + '/static/deposit-bonuses.json'];
   }
 
   function loadFromGofunShop() {

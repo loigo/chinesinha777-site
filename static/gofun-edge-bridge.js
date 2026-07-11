@@ -121,6 +121,41 @@
     return h;
   }
 
+  function isStaticProdHost() {
+    var h = location.hostname || '';
+    return (
+      h === 'chinesinha777.bet' ||
+      h === 'www.chinesinha777.bet' ||
+      /\.github\.io$/i.test(h)
+    );
+  }
+
+  /** /painel/* não existe no GH Pages — reescreve ou stub. */
+  function mapPainelUrl(u) {
+    try {
+      var url = new URL(u, location.href);
+      if (!/\/painel\//i.test(url.pathname) && !/deposit-bonuses/i.test(url.pathname + url.search)) {
+        return null;
+      }
+      // deposit-bonuses → JSON estático (sem 404)
+      if (/deposit-bonuses/i.test(url.pathname)) {
+        return location.origin + '/static/deposit-bonuses.json';
+      }
+      // outros endpoints do painel em prod estático → stub vazio
+      if (isStaticProdHost() && /\/painel\//i.test(url.pathname)) {
+        return '__ch7_stub_empty_json__';
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function emptyJsonResponse() {
+    return new Response(JSON.stringify({ ok: true, data: [], list: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
+  }
+
   function mapUrl(u) {
     if (u == null) return u;
     if (typeof u !== 'string') {
@@ -138,6 +173,10 @@
     if (/igamewin|pgsoft|pragmaticplay|jili|evolution|spribe|royalgam/i.test(u)) {
       return u;
     }
+    // painel morto em prod
+    var painel = mapPainelUrl(u);
+    if (painel) return painel;
+
     try {
       var url = new URL(u, location.href);
       if (!isOurHost(url.hostname) && u.indexOf('/gofun/') === -1) return u;
@@ -166,12 +205,14 @@
     try {
       if (typeof input === 'string') {
         var nu = mapUrl(input);
+        if (nu === '__ch7_stub_empty_json__') return Promise.resolve(emptyJsonResponse());
         if (nu !== input) {
           input = nu;
           init = patchInitHeaders(init, nu);
         }
       } else if (input && typeof Request !== 'undefined' && input instanceof Request) {
         var nu2 = mapUrl(input.url);
+        if (nu2 === '__ch7_stub_empty_json__') return Promise.resolve(emptyJsonResponse());
         if (nu2 !== input.url) {
           var h2 = new Headers(input.headers);
           var ptok = extractPlayerToken(h2);
@@ -205,6 +246,10 @@
         }
       }
       var mapped = mapUrl(url == null ? '' : url);
+      if (mapped === '__ch7_stub_empty_json__') {
+        this.__ch7StubEmpty = 1;
+        mapped = location.origin + '/static/deposit-bonuses.json';
+      }
       this.__ch7Url = mapped;
       this.__ch7PlayerTok = '';
       arguments[1] = mapped;

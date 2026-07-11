@@ -1,12 +1,19 @@
-{
-  "url": "https://bgajbbvgcqqkbvbtwnec.supabase.co",
-  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0",
-  "storageBucket": "public-assets",
-  "playerApi": "https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/player-api",
-  "adminApi": "https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/admin-api",
-  "health": "https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/health",
-  "siteUrl": "https://bgajbbvgcqqkbvbtwnec.supabase.co/storage/v1/object/public/web/index.html",
-  "adminUrl": "https://bgajbbvgcqqkbvbtwnec.supabase.co/storage/v1/object/public/web/admin/index.html",
-  "noVps": true,
-  "noVercel": true
+﻿{
+    "url":  "https://bgajbbvgcqqkbvbtwnec.supabase.co",
+    "noVps":  true,
+    "gofunApi":  "https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/gofun",
+    "storageBucket":  "public-assets",
+    "optimizedAt":  "2026-07-11T19:33:35.9143007Z",
+    "anonKey":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0",
+    "playerApi":  "https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/player-api",
+    "region":  "sa-east-1",
+    "adminApi":  "https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/admin-api",
+    "noVercel":  true,
+    "siteUrl":  "https://chinesinha777.bet",
+    "health":  "https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/health",
+    "adminUrl":  "https://bgajbbvgcqqkbvbtwnec.supabase.co/storage/v1/object/public/web/admin/index.html",
+    "pooler":  "aws-0-sa-east-1.pooler.supabase.com:6543",
+    "customUrl":  "https://api.chinesinha777.bet",
+    "plan":  "pro-pending",
+    "customDomainReady":  false
 }

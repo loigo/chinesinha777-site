@@ -1,18 +1,32 @@
 /**
- * Banners de bônus no depósito — layout limpo, rem-friendly, sem bagunçar o SPA.
- * v=4 — max 2 cards, mount seguro, só em #/recharge
+ * Banners de bônus no depósito — layout limpo.
+ * v5 — sem /painel em produção estática (evita 404 no console).
+ * Fontes: /static/deposit-bonuses.json → Edge gofun shop/info → fallback vazio silencioso.
  */
 (function () {
   'use strict';
+  if (window.__ch7DepositBonusV5) return;
+  window.__ch7DepositBonusV5 = 1;
 
   var ROOT_ID = 'ch7-deposit-promos';
   var cache = null;
   var cacheAt = 0;
   var mounting = false;
+  var EDGE =
+    (window.__CH7_GOFUN_EDGE__ ||
+      'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/gofun') + '';
+
+  function isStaticProd() {
+    var h = location.hostname || '';
+    return (
+      h === 'chinesinha777.bet' ||
+      h === 'www.chinesinha777.bet' ||
+      /\.github\.io$/i.test(h)
+    );
+  }
 
   function isDepositView() {
     var h = String(location.hash || '');
-    // só #/recharge (e query), nunca iframe / records / convite
     if (/rechargeIframe|rechargeRecord|invitedRecharge/i.test(h)) return false;
     return /#\/recharge\b/i.test(h);
   }
@@ -36,23 +50,19 @@
   }
 
   function findMountPoint() {
-    // 1) painel de depósito nativo
     var panels = document.querySelectorAll(
       '.recharge-dialog .q-tab-panel, .recharge-dialog',
     );
     for (var i = 0; i < panels.length; i++) {
       var el = panels[i];
       if (el.offsetParent === null && el.clientHeight === 0) continue;
-      // evita aba de retirada
       var t = (el.textContent || '').slice(0, 300);
       if (/Retirada|Saque|withdraw/i.test(t) && !/Dep[oó]sito|PIX|Recarga/i.test(t)) {
         continue;
       }
       return el;
     }
-    // 2) fallback: primeiro q-page da rota recharge
-    var page = document.querySelector('.recharge-dialog') || document.querySelector('.q-page');
-    return page;
+    return document.querySelector('.recharge-dialog') || document.querySelector('.q-page');
   }
 
   function clearRoot() {
@@ -63,14 +73,12 @@
   function placeRoot(root) {
     var mount = findMountPoint();
     if (!mount) return false;
-    // logo após o banner de bônus nativo, se existir
     var bonus = mount.querySelector('.bonusContent');
     if (bonus && bonus.parentNode) {
       if (bonus.nextSibling) bonus.parentNode.insertBefore(root, bonus.nextSibling);
       else bonus.parentNode.appendChild(root);
       return true;
     }
-    // dentro do tab-panel de depósito (não antes das tabs)
     var panel =
       mount.matches && mount.matches('.q-tab-panel')
         ? mount
@@ -92,18 +100,14 @@
     }
     if (mounting) return;
     mounting = true;
-
     try {
-      // no máximo 2 cards para não poluir
       promos = promos.slice(0, 2);
-
       var existing = document.getElementById(ROOT_ID);
       var root = existing || document.createElement('div');
       root.id = ROOT_ID;
       root.setAttribute('role', 'region');
       root.setAttribute('aria-label', 'Promoções de depósito');
       root.innerHTML = '';
-
       promos.forEach(function (p, idx) {
         var card = document.createElement('div');
         card.className = 'ch7-promo-card ch7-card';
@@ -142,17 +146,15 @@
         card.innerHTML = html;
         root.appendChild(card);
       });
-
       root.onclick = function (e) {
         var btn = e.target.closest('[data-detail]');
         if (!btn) return;
         var id = btn.getAttribute('data-detail');
-        var msg = document.getElementById('ch7-promo-msg-' + id);
-        if (!msg) return;
-        var open = msg.classList.toggle('open');
+        var msgEl = document.getElementById('ch7-promo-msg-' + id);
+        if (!msgEl) return;
+        var open = msgEl.classList.toggle('open');
         btn.textContent = open ? 'Fechar' : 'Detalhe';
       };
-
       if (!existing || !document.body.contains(existing)) {
         if (!placeRoot(root)) return;
       }
@@ -166,7 +168,80 @@
     if (Array.isArray(raw)) return raw;
     if (Array.isArray(raw.data)) return raw.data;
     if (Array.isArray(raw.list)) return raw.list;
+    if (raw.data && Array.isArray(raw.data.promoBanners)) return raw.data.promoBanners;
+    if (raw.data && Array.isArray(raw.data.depositPromos)) return raw.data.depositPromos;
     return [];
+  }
+
+  function cleanList(list) {
+    list = (list || []).filter(function (p) {
+      return p && (p.bannerUrl || p.title) && p.isActive !== false;
+    });
+    return list.map(function (p) {
+      if (p && p.bannerUrl) {
+        p.bannerUrl = String(p.bannerUrl).replace(
+          /^https?:\/\/(www\.)?chinesinha777\.bet(?::\d+)?/i,
+          '',
+        );
+      }
+      return p;
+    });
+  }
+
+  /** Fetch silencioso — nunca deixa 404 barulhento no console se evitável. */
+  function quietFetchJson(url) {
+    return fetch(url, {
+      credentials: 'omit',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    })
+      .then(function (r) {
+        if (!r.ok) return null;
+        var ct = (r.headers && r.headers.get('content-type')) || '';
+        if (!/json/i.test(ct) && !/text\/plain/i.test(ct)) return null;
+        return r.json().catch(function () {
+          return null;
+        });
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
+  function loadUrls() {
+    // Nunca chamar /painel em produção (404 + ruído no console).
+    // Só JSON estático; fallback Edge em loadFromGofunShop().
+    return [location.origin + '/static/deposit-bonuses.json'];
+  }
+
+  function loadFromGofunShop() {
+    if (!EDGE) return Promise.resolve([]);
+    var ANON =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
+    return fetch(EDGE + '/v2/shop/info', {
+      method: 'POST',
+      credentials: 'omit',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'x-plain-json': '1',
+        apikey: ANON,
+        Authorization: 'Bearer ' + ANON,
+      },
+      body: '{}',
+    })
+      .then(function (r) {
+        if (!r.ok) return [];
+        return r.json();
+      })
+      .then(function (j) {
+        var d = (j && j.data) || {};
+        var list = d.promoBanners || d.depositPromos || [];
+        return Array.isArray(list) ? list : [];
+      })
+      .catch(function () {
+        return [];
+      });
   }
 
   function load() {
@@ -178,32 +253,24 @@
       render(cache);
       return;
     }
-    fetch('/painel/api/public/deposit-bonuses', {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    })
-      .then(function (r) {
-        var ct = (r.headers && r.headers.get('content-type')) || '';
-        if (!r.ok || !/json/i.test(ct)) return { data: [] };
-        return r.json();
-      })
+
+    var urls = loadUrls();
+    var chain = Promise.resolve(null);
+    urls.forEach(function (url) {
+      chain = chain.then(function (prev) {
+        if (prev && normalizeList(prev).length) return prev;
+        return quietFetchJson(url);
+      });
+    });
+
+    chain
       .then(function (j) {
-        var list = normalizeList(j && j.data ? j : j);
-        // filtra só ativos com banner ou título
-        list = list.filter(function (p) {
-          return p && (p.bannerUrl || p.title) && p.isActive !== false;
-        });
-        // normaliza bannerUrl absoluto → relative (anti CORB/timeout prod)
-        list = list.map(function (p) {
-          if (p && p.bannerUrl) {
-            p.bannerUrl = String(p.bannerUrl).replace(
-              /^https?:\/\/(www\.)?chinesinha777\.bet(?::\d+)?/i,
-              '',
-            );
-          }
-          return p;
-        });
-        cache = list;
+        var list = cleanList(normalizeList(j));
+        if (list.length) return list;
+        return loadFromGofunShop().then(cleanList);
+      })
+      .then(function (list) {
+        cache = list || [];
         cacheAt = Date.now();
         render(cache);
       })
