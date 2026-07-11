@@ -1,19 +1,11 @@
 /**
  * Garante que #/rechargeIframe mostre o PIX (QR + copia e cola).
- *
- * Problemas comuns:
- *  - SPA seta rechargeUrl e navega; em refresh a URL some → tela branca
- *  - iframe sandbox / altura 0
- *  - shop/order falha e mesmo assim abre iframe vazio
- *
- * Estratégia:
- *  1) Intercepta shop/order e grava última URL PIX no localStorage
- *  2) Em #/rechargeIframe, injeta/força iframe src = última URL
- *  3) CSS para iframe 100% altura + fallback UI se sem pedido
+ * v8 — corrige loading eterno, sandbox, URL /pix-pay vs .html, pinia setRechargeUrl.
  */
 (function () {
   'use strict';
-  if (window.__ch7DepositPixInit) return;
+  if (window.__ch7DepositPixInitV8) return;
+  window.__ch7DepositPixInitV8 = 1;
   window.__ch7DepositPixInit = 1;
 
   var KEY = 'ch7_last_pix_url';
@@ -21,20 +13,36 @@
   var KEY_TS = 'ch7_last_pix_ts';
   var STYLE_ID = 'ch7-deposit-pix-style';
   var FALLBACK_ID = 'ch7-pix-fallback';
-  var MAX_AGE_MS = 60 * 60 * 1000; // 1h
+  var MAX_AGE_MS = 60 * 60 * 1000;
+  var CRYPTO_KEY = '9EzYC7IZE1PTREu8';
 
   function isRechargeIframe() {
     return /#\/?rechargeIframe\b/i.test(String(location.hash || ''));
   }
 
-  function isRechargePage() {
-    return /#\/?recharge\b/i.test(String(location.hash || ''));
+  function normalizePixUrl(u) {
+    var s = String(u || '').trim();
+    if (!s) return '';
+    // local Node usava /pix-pay — em GH Pages precisa .html
+    s = s.replace(/\/pix-pay(\?|#|$)/i, '/pix-pay.html$1');
+    s = s.replace(/pix-pay\?/i, function (m) {
+      return m.indexOf('.html') >= 0 ? m : 'pix-pay.html?';
+    });
+    if (/^https?:\/\//i.test(s)) return s;
+    if (s.charAt(0) === '/') return location.origin + s;
+    if (/pix-pay/i.test(s)) return location.origin + '/' + s.replace(/^\//, '');
+    return location.origin + '/' + s;
+  }
+
+  function absUrl(u) {
+    return normalizePixUrl(u);
   }
 
   function savePix(url, orderId) {
     try {
-      if (url) {
-        localStorage.setItem(KEY, String(url));
+      var n = normalizePixUrl(url);
+      if (n) {
+        localStorage.setItem(KEY, n);
         localStorage.setItem(KEY_TS, String(Date.now()));
       }
       if (orderId) localStorage.setItem(KEY_ORDER, String(orderId));
@@ -48,7 +56,7 @@
       if (!url) return null;
       if (ts && Date.now() - ts > MAX_AGE_MS) return null;
       return {
-        url: url,
+        url: normalizePixUrl(url),
         orderId: localStorage.getItem(KEY_ORDER) || '',
       };
     } catch (e) {
@@ -56,26 +64,25 @@
     }
   }
 
-  function absUrl(u) {
-    var s = String(u || '').trim();
-    if (!s) return '';
-    if (/^https?:\/\//i.test(s)) return s;
-    if (s.charAt(0) === '/') return location.origin + s;
-    return location.origin + '/' + s;
-  }
-
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
     var s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent =
-      '/* PIX iframe full height */' +
+      '/* PIX iframe full height + hide stuck loaders */' +
       '.iframe-container.ch7-pix-fix,' +
-      '.iframe-container:has(iframe.iframe2){' +
+      '.iframe-container:has(iframe.iframe2),' +
+      '.iframe-container:has(iframe.ch7-pix-iframe){' +
       'position:absolute!important;inset:0!important;height:100%!important;min-height:70vh!important;z-index:5;}' +
       '.iframe-container iframe.iframe2,' +
       '.iframe-container iframe.ch7-pix-iframe{' +
       'width:100%!important;height:100%!important;min-height:70vh!important;border:0!important;background:#171512!important;}' +
+      'body.ch7-recharge-iframe .q-loading,' +
+      'body.ch7-recharge-iframe .q-loading__backdrop,' +
+      'body.ch7-recharge-iframe .q-inner-loading,' +
+      'body.ch7-recharge-iframe .fullscreen.q-loading,' +
+      'body.ch7-recharge-iframe .q-loading-bar{' +
+      'display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;}' +
       '#' +
       FALLBACK_ID +
       '{position:fixed;inset:0;z-index:99970;display:flex;align-items:center;justify-content:center;' +
@@ -102,6 +109,42 @@
     document.head.appendChild(s);
   }
 
+  function hideSpaLoading() {
+    try {
+      document.body.classList.toggle('ch7-recharge-iframe', isRechargeIframe());
+    } catch (e) {}
+    try {
+      var app =
+        document.querySelector('#q-app') && document.querySelector('#q-app').__vue_app__;
+      var pinia =
+        app &&
+        app.config &&
+        app.config.globalProperties &&
+        app.config.globalProperties.$pinia;
+      if (pinia && pinia._s) {
+        pinia._s.forEach(function (store) {
+          try {
+            if (typeof store.setIframeLoading === 'function') store.setIframeLoading(false);
+            if (store.$state && store.$state.iframeLoading) store.$state.iframeLoading = false;
+            if (store.iframeLoading) store.iframeLoading = false;
+          } catch (e) {}
+        });
+      }
+    } catch (e) {}
+    try {
+      document
+        .querySelectorAll(
+          '.q-loading, .q-loading__backdrop, .q-inner-loading, .fullscreen.q-loading, .q-loading-bar',
+        )
+        .forEach(function (el) {
+          el.style.display = 'none';
+          el.style.visibility = 'hidden';
+          el.style.pointerEvents = 'none';
+          el.style.opacity = '0';
+        });
+    } catch (e) {}
+  }
+
   function findRechargeIframe() {
     return (
       document.querySelector('.iframe-container iframe.iframe2') ||
@@ -113,14 +156,18 @@
 
   function ensureIframe(url) {
     ensureStyle();
+    var abs = normalizePixUrl(url);
+    if (!abs) return false;
+
     var container =
       document.querySelector('.iframe-container') ||
       document.querySelector('.q-page.bg-white') ||
-      document.querySelector('#q-app .q-page');
+      document.querySelector('#q-app .q-page') ||
+      document.querySelector('#q-app') ||
+      document.body;
 
     var iframe = findRechargeIframe();
-    if (!iframe && container) {
-      // cria iframe se o SPA não montou (src vazio / bug)
+    if (!iframe) {
       var wrap = document.querySelector('.iframe-container');
       if (!wrap) {
         wrap = document.createElement('div');
@@ -132,35 +179,41 @@
       iframe.className = 'iframe2 ch7-pix-iframe';
       wrap.appendChild(iframe);
     }
-    if (!iframe) return false;
 
     iframe.classList.add('ch7-pix-iframe');
-    // sandbox permissivo para QR + scripts
     try {
       iframe.removeAttribute('sandbox');
     } catch (e) {}
     iframe.setAttribute(
       'allow',
-      'payment *; clipboard-write *; fullscreen *',
+      'payment *; clipboard-write *; fullscreen *; autoplay *',
     );
-    iframe.setAttribute('allowfullscreen', '');
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.minHeight = '70vh';
-    iframe.style.border = '0';
-    iframe.style.background = '#171512';
+    iframe.setAttribute('allowfullscreen', 'true');
+    iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+    iframe.style.cssText =
+      'width:100%;height:100%;min-height:70vh;border:0;background:#171512;display:block;';
 
-    var abs = absUrl(url);
-    if (abs && iframe.getAttribute('src') !== abs) {
+    var cur = iframe.getAttribute('src') || '';
+    if (normalizePixUrl(cur) !== abs) {
       iframe.setAttribute('src', abs);
     }
-    // esconde fallback se tem src
+    iframe.onload = function () {
+      hideSpaLoading();
+    };
+    iframe.onerror = function () {
+      hideSpaLoading();
+    };
     hideFallback();
+    hideSpaLoading();
+    // safety: loading some browsers não dispara se cache
+    setTimeout(hideSpaLoading, 300);
+    setTimeout(hideSpaLoading, 1200);
     return true;
   }
 
   function showFallback(msg) {
     ensureStyle();
+    hideSpaLoading();
     var el = document.getElementById(FALLBACK_ID);
     if (!el) {
       el = document.createElement('div');
@@ -172,10 +225,10 @@
       '<h2>Depósito PIX</h2>' +
       '<p>' +
       (msg ||
-        'Não encontramos um pedido PIX ativo nesta sessão. Gere um novo depósito para ver o QR Code e o código copia e cola.') +
+        'Não encontramos um pedido PIX ativo. Volte e escolha um valor para gerar o QR Code.') +
       '</p>' +
       '<button type="button" class="primary" id="ch7-pix-go-recharge">Ir para Depósito</button>' +
-      '<button type="button" class="ghost" id="ch7-pix-retry">Tentar carregar de novo</button>' +
+      '<button type="button" class="ghost" id="ch7-pix-retry">Tentar de novo</button>' +
       '</div>';
     el.style.display = 'flex';
     var b1 = document.getElementById('ch7-pix-go-recharge');
@@ -197,43 +250,71 @@
     if (el) el.style.display = 'none';
   }
 
-  /** Esconde overlay de loading do Quasar / gameStore (trava em #/rechargeIframe). */
-  function hideSpaLoading() {
+  function getPiniaStores() {
     try {
       var app =
-        document.querySelector('#q-app') &&
-        document.querySelector('#q-app').__vue_app__;
+        document.querySelector('#q-app') && document.querySelector('#q-app').__vue_app__;
       var pinia =
         app &&
         app.config &&
         app.config.globalProperties &&
         app.config.globalProperties.$pinia;
-      if (pinia && pinia._s) {
-        pinia._s.forEach(function (store) {
-          try {
-            if (typeof store.setIframeLoading === 'function') {
-              store.setIframeLoading(false);
-            }
-          } catch (e) {}
-        });
-      }
-    } catch (e) {}
-    try {
-      // overlays Quasar comuns
-      document
-        .querySelectorAll(
-          '.q-loading, .q-loading__backdrop, .q-inner-loading, .fullscreen.q-loading',
-        )
-        .forEach(function (el) {
-          el.style.display = 'none';
-          el.style.visibility = 'hidden';
-          el.style.pointerEvents = 'none';
-        });
-    } catch (e) {}
+      if (!pinia || !pinia._s) return [];
+      var out = [];
+      pinia._s.forEach(function (store) {
+        out.push(store);
+      });
+      return out;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function patchSetRechargeUrl() {
+    getPiniaStores().forEach(function (store) {
+      try {
+        if (!store || store.__ch7PixUrlPatch) return;
+        if (typeof store.setRechargeUrl !== 'function') return;
+        store.__ch7PixUrlPatch = 1;
+        var orig = store.setRechargeUrl.bind(store);
+        store.setRechargeUrl = function (url) {
+          var fixed = normalizePixUrl(url);
+          if (fixed) {
+            savePix(fixed, '');
+            setTimeout(function () {
+              if (isRechargeIframe() || /rechargeIframe/i.test(location.hash)) {
+                ensureIframe(fixed);
+              }
+              hideSpaLoading();
+            }, 30);
+            setTimeout(hideSpaLoading, 400);
+          }
+          return orig(fixed || url);
+        };
+      } catch (e) {}
+    });
+  }
+
+  function readStoreRechargeUrl() {
+    var url = '';
+    getPiniaStores().forEach(function (store) {
+      if (url) return;
+      try {
+        if (store.rechargeUrl) url = store.rechargeUrl;
+        if (typeof store.getRechargeUrl === 'function') {
+          url = store.getRechargeUrl() || url;
+        }
+        if (store.$state && store.$state.rechargeUrl) url = store.$state.rechargeUrl;
+      } catch (e) {}
+    });
+    return normalizePixUrl(url);
   }
 
   function fixRechargeIframe(force) {
     if (!isRechargeIframe() && !force) {
+      try {
+        document.body.classList.remove('ch7-recharge-iframe');
+      } catch (e) {}
       hideFallback();
       return;
     }
@@ -241,111 +322,131 @@
 
     ensureStyle();
     hideSpaLoading();
-    var saved = loadPix();
+    patchSetRechargeUrl();
+
     var iframe = findRechargeIframe();
     var src = iframe ? iframe.getAttribute('src') || '' : '';
-
-    // se iframe já tem pix-pay, ok
     if (/pix-pay/i.test(src)) {
       ensureIframe(src);
-      hideFallback();
-      hideSpaLoading();
-      // onload do iframe → tira loading de novo
-      try {
-        iframe.onload = function () {
-          hideSpaLoading();
-        };
-      } catch (e) {}
       return;
     }
 
-    // tenta recuperar da última ordem
+    var storeUrl = readStoreRechargeUrl();
+    if (storeUrl) {
+      savePix(storeUrl, '');
+      ensureIframe(storeUrl);
+      return;
+    }
+
+    var saved = loadPix();
     if (saved && saved.url) {
+      // re-injeta na store para o MainLayout também pegar
+      try {
+        getPiniaStores().forEach(function (store) {
+          if (typeof store.setRechargeUrl === 'function') {
+            store.setRechargeUrl(saved.url);
+          }
+        });
+      } catch (e) {}
       ensureIframe(saved.url);
-      hideSpaLoading();
       return;
     }
 
-    // tenta ler do pinia/vue se existir
+    // se order na query do hash/local
     try {
-      var app = document.querySelector('#q-app') && document.querySelector('#q-app').__vue_app__;
-      var pinia = app && app.config && app.config.globalProperties && app.config.globalProperties.$pinia;
-      var st = pinia && pinia.state && pinia.state.value;
-      var url =
-        (st && st.game && (st.game.rechargeUrl || st.game.RechargeUrl)) ||
-        (st && st.user && st.user.rechargeUrl) ||
-        '';
-      // busca em stores
-      if (!url && pinia && pinia._s) {
-        pinia._s.forEach(function (store) {
-          if (url) return;
-          try {
-            if (store.rechargeUrl) url = store.rechargeUrl;
-            if (store.getRechargeUrl) url = store.getRechargeUrl;
-          } catch (e) {}
-        });
-      }
-      if (url) {
-        savePix(url, '');
-        ensureIframe(url);
+      var oid = localStorage.getItem(KEY_ORDER) || '';
+      if (oid) {
+        var rebuild = location.origin + '/pix-pay.html?order=' + encodeURIComponent(oid);
+        ensureIframe(rebuild);
         return;
       }
     } catch (e) {}
 
-    // sem URL → fallback (não deixa tela branca)
     showFallback();
   }
 
   function pickPayFromObj(j) {
     if (!j || typeof j !== 'object') return null;
     var d = j.data || j.Data || j;
-    if (!d || typeof d !== 'object') return null;
-    var pay = d.url || d.Url || d.payUrl || d.PayUrl || d.pay_url || '';
+    if (!d || typeof d !== 'object') {
+      // às vezes o payload já é o data
+      if (j.url || j.Url || j.payUrl) d = j;
+      else return null;
+    }
+    var pay =
+      d.url || d.Url || d.payUrl || d.PayUrl || d.pay_url || d.path || d.Path || '';
     var oid = d.OrderID || d.orderId || d.order_id || '';
     if (!pay && typeof d === 'string' && /pix-pay/i.test(d)) pay = d;
     if (!pay) return null;
-    return { pay: absUrl(pay), oid: oid || '' };
+    return { pay: normalizePixUrl(pay), oid: oid || '' };
   }
 
-  /** Extrai URL pix-pay mesmo de corpo AES (texto com URL em claro é raro; tenta JSON). */
+  /** Decrypt AES-ECB base64 (mesmo formato do SPA / Edge). */
+  function tryDecryptAes(text) {
+    var raw = String(text || '').trim();
+    if (!raw || raw.charAt(0) === '{' || raw.charAt(0) === '[') return null;
+    try {
+      // CryptoJS global se já no page (bundle SPA não expõe fácil)
+      var C = window.CryptoJS;
+      if (!C) return null;
+      var key = C.enc.Utf8.parse(CRYPTO_KEY);
+      var params = C.lib.CipherParams.create({
+        ciphertext: C.enc.Base64.parse(raw),
+      });
+      var dec = C.AES.decrypt(params, key, {
+        mode: C.mode.ECB,
+        padding: C.pad.Pkcs7,
+      });
+      var plain = dec.toString(C.enc.Utf8);
+      if (plain && plain.charAt(0) === '{') return JSON.parse(plain);
+    } catch (e) {}
+    return null;
+  }
+
   function harvestShopOrderBody(text) {
     try {
       var j = JSON.parse(text);
       return pickPayFromObj(j);
     } catch (e) {}
-    // fallback: URL absoluta no texto (respostas legíveis / logs)
+    var dec = tryDecryptAes(text);
+    if (dec) return pickPayFromObj(dec);
     try {
       var m = String(text || '').match(
-        /https?:\/\/[^\s"'\\]+pix-pay\?order=[A-Za-z0-9_-]+/i,
+        /https?:\/\/[^\s"'\\]+pix-pay(?:\.html)?\?order=[A-Za-z0-9_-]+/i,
       );
-      if (m) return { pay: m[0], oid: (m[0].match(/order=([^&]+)/) || [])[1] || '' };
+      if (m) {
+        return {
+          pay: normalizePixUrl(m[0]),
+          oid: (m[0].match(/order=([^&]+)/) || [])[1] || '',
+        };
+      }
     } catch (e2) {}
     return null;
   }
 
   function onShopOrderHit(pay, oid) {
     if (!pay) return;
-    savePix(pay, oid);
+    var fixed = normalizePixUrl(pay);
+    savePix(fixed, oid);
     hideSpaLoading();
-    if (isRechargeIframe()) {
-      setTimeout(function () {
-        ensureIframe(pay);
-        hideSpaLoading();
-      }, 50);
-    } else {
-      // garante URL pronta quando o SPA navegar
-      setTimeout(function () {
-        if (isRechargeIframe()) {
-          ensureIframe(pay);
-          hideSpaLoading();
-        }
-      }, 400);
-    }
+    try {
+      getPiniaStores().forEach(function (store) {
+        if (typeof store.setRechargeUrl === 'function') store.setRechargeUrl(fixed);
+      });
+    } catch (e) {}
+    setTimeout(function () {
+      if (isRechargeIframe()) ensureIframe(fixed);
+      hideSpaLoading();
+    }, 40);
+    setTimeout(function () {
+      if (isRechargeIframe()) ensureIframe(fixed);
+      hideSpaLoading();
+    }, 500);
   }
 
-  // Intercepta fetch shop/order
-  if (typeof window.fetch === 'function' && !window.__ch7PixFetch) {
-    window.__ch7PixFetch = 1;
+  // fetch intercept
+  if (typeof window.fetch === 'function' && !window.__ch7PixFetchV8) {
+    window.__ch7PixFetchV8 = 1;
     var _fetch = window.fetch;
     window.fetch = function (input, init) {
       var url = typeof input === 'string' ? input : (input && input.url) || '';
@@ -367,9 +468,9 @@
     };
   }
 
-  // XHR (axios do SPA — body AES; após decrypt o store já tem URL; aqui é backup)
-  if (typeof XMLHttpRequest !== 'undefined' && !window.__ch7PixXhr) {
-    window.__ch7PixXhr = 1;
+  // XHR intercept
+  if (typeof XMLHttpRequest !== 'undefined' && !window.__ch7PixXhrV8) {
+    window.__ch7PixXhrV8 = 1;
     var _open = XMLHttpRequest.prototype.open;
     var _send = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.open = function (method, url) {
@@ -384,80 +485,50 @@
             var hit = harvestShopOrderBody(xhr.responseText || '');
             if (hit) onShopOrderHit(hit.pay, hit.oid);
           } catch (e) {}
-          // após order, tira loading residual
-          setTimeout(hideSpaLoading, 100);
-          setTimeout(hideSpaLoading, 800);
+          setTimeout(hideSpaLoading, 80);
+          setTimeout(hideSpaLoading, 600);
         });
       }
       return _send.apply(this, arguments);
     };
   }
 
-  // Poll curto da store (só em #/rechargeIframe, max ~12s) — NÃO setInterval eterno
-  if (!window.__ch7PixStoreWatch) {
-    window.__ch7PixStoreWatch = 1;
-    var storePolls = 0;
-    var storeTimer = null;
-    function pollStoreOnce() {
-      storePolls++;
-      if (!isRechargeIframe() || storePolls > 24) {
-        if (storeTimer) clearInterval(storeTimer);
-        storeTimer = null;
-        return;
+  // loading killer while on rechargeIframe
+  var killTimer = null;
+  function armLoadingKiller() {
+    if (killTimer) clearInterval(killTimer);
+    if (!isRechargeIframe()) return;
+    var n = 0;
+    killTimer = setInterval(function () {
+      n++;
+      hideSpaLoading();
+      patchSetRechargeUrl();
+      if (n === 1 || n === 4 || n === 10) fixRechargeIframe(false);
+      if (!isRechargeIframe() || n > 40) {
+        clearInterval(killTimer);
+        killTimer = null;
       }
-      try {
-        var app =
-          document.querySelector('#q-app') &&
-          document.querySelector('#q-app').__vue_app__;
-        var pinia =
-          app &&
-          app.config &&
-          app.config.globalProperties &&
-          app.config.globalProperties.$pinia;
-        var url = '';
-        if (pinia && pinia._s) {
-          pinia._s.forEach(function (store) {
-            try {
-              if (store.rechargeUrl) url = store.rechargeUrl;
-              if (typeof store.getRechargeUrl === 'function') {
-                url = store.getRechargeUrl() || url;
-              }
-            } catch (e) {}
-          });
-        }
-        if (url && /pix-pay/i.test(url)) {
-          savePix(absUrl(url), '');
-          ensureIframe(absUrl(url));
-          hideSpaLoading();
-          if (storeTimer) clearInterval(storeTimer);
-          storeTimer = null;
-        }
-      } catch (e) {}
-    }
-    function startStorePoll() {
-      if (!isRechargeIframe()) return;
-      storePolls = 0;
-      if (storeTimer) clearInterval(storeTimer);
-      storeTimer = setInterval(pollStoreOnce, 500);
-      pollStoreOnce();
-    }
-    window.addEventListener('hashchange', startStorePoll);
-    if (isRechargeIframe()) startStorePoll();
+    }, 400);
   }
 
   var t = null;
   function schedule() {
-    if (!isRechargeIframe()) return;
+    patchSetRechargeUrl();
+    if (!isRechargeIframe()) {
+      try {
+        document.body.classList.remove('ch7-recharge-iframe');
+      } catch (e) {}
+      return;
+    }
+    armLoadingKiller();
     clearTimeout(t);
     t = setTimeout(function () {
       fixRechargeIframe(false);
-    }, 250);
+    }, 120);
   }
 
-  // ── Confirmação bonita + saldo ao vivo (webhook / poll) ──
+  // success overlay (postMessage from pix-pay)
   var SUCCESS_ID = 'ch7-deposit-success';
-  var STYLE_OK = 'ch7-deposit-success-style';
-
   function fmtBRL(n) {
     try {
       return Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -465,202 +536,33 @@
       return 'R$ ' + n;
     }
   }
-
-  function ensureSuccessStyle() {
-    if (document.getElementById(STYLE_OK)) return;
-    var s = document.createElement('style');
-    s.id = STYLE_OK;
-    s.textContent =
-      '#' +
-      SUCCESS_ID +
-      '{position:fixed;inset:0;z-index:99980;display:flex;align-items:center;justify-content:center;' +
-      'padding:16px;background:rgba(8,6,4,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}' +
-      '#' +
-      SUCCESS_ID +
-      ' .panel{max-width:400px;width:100%;text-align:center;border-radius:20px;padding:26px 20px 20px;' +
-      'background:linear-gradient(165deg,#2c2114,#16120c);border:1px solid rgba(246,207,135,.38);' +
-      'box-shadow:0 24px 60px rgba(0,0,0,.55);animation:ch7sPop .5s cubic-bezier(.16,1,.3,1) both;color:#fff;' +
-      'font:500 14px/1.45 system-ui,sans-serif;}' +
-      '#' +
-      SUCCESS_ID +
-      ' .ico{width:78px;height:78px;margin:0 auto 12px;border-radius:50%;' +
-      'background:linear-gradient(145deg,#86efac,#16a34a);display:flex;align-items:center;justify-content:center;' +
-      'box-shadow:0 8px 28px rgba(34,197,94,.4);font-size:40px;line-height:1;}' +
-      '#' +
-      SUCCESS_ID +
-      ' h2{margin:0 0 8px;color:#f6cf87;font:800 1.2rem/1.25 system-ui,sans-serif;}' +
-      '#' +
-      SUCCESS_ID +
-      ' .amt{margin:10px 0;color:#ffe13c;font:800 1.75rem/1.1 system-ui,sans-serif;}' +
-      '#' +
-      SUCCESS_ID +
-      ' .sub{margin:0 0 8px;color:rgba(255,255,255,.8);}' +
-      '#' +
-      SUCCESS_ID +
-      ' .bal{margin:12px 0 16px;padding:10px;border-radius:12px;color:#7bfe7c;font-weight:700;' +
-      'background:rgba(123,254,124,.08);border:1px solid rgba(123,254,124,.22);}' +
-      '#' +
-      SUCCESS_ID +
-      ' button{width:100%;padding:13px;border:0;border-radius:12px;margin-top:8px;font-weight:800;cursor:pointer;}' +
-      '#' +
-      SUCCESS_ID +
-      ' .primary{background:linear-gradient(180deg,#ffe566,#f0b429);color:#1a1208;}' +
-      '#' +
-      SUCCESS_ID +
-      ' .ghost{background:#323749;color:#fff;}' +
-      '@keyframes ch7sPop{from{opacity:0;transform:scale(.88) translateY(12px)}to{opacity:1;transform:none}}' +
-      '#ch7-cf{pointer-events:none;position:fixed;inset:0;z-index:99981;overflow:hidden}' +
-      '#ch7-cf i{position:absolute;top:-10px;width:8px;height:12px;border-radius:2px;' +
-      'animation:ch7cf linear forwards}' +
-      '@keyframes ch7cf{to{transform:translateY(110vh) rotate(720deg);opacity:.15}}';
-    document.head.appendChild(s);
-  }
-
-  function confettiBurst() {
-    var host = document.getElementById('ch7-cf');
-    if (!host) {
-      host = document.createElement('div');
-      host.id = 'ch7-cf';
-      document.body.appendChild(host);
-    }
-    host.innerHTML = '';
-    var colors = ['#f6cf87', '#ffe13c', '#f0b429', '#7bfe7c', '#60a5fa', '#f472b6', '#fff'];
-    for (var i = 0; i < 42; i++) {
-      var d = document.createElement('i');
-      d.style.left = Math.random() * 100 + '%';
-      d.style.background = colors[i % colors.length];
-      d.style.animationDuration = 1.5 + Math.random() * 1.8 + 's';
-      d.style.animationDelay = Math.random() * 0.3 + 's';
-      d.style.width = 6 + Math.random() * 6 + 'px';
-      d.style.height = 8 + Math.random() * 10 + 'px';
-      host.appendChild(d);
-    }
-    setTimeout(function () {
-      try {
-        host.remove();
-      } catch (e) {}
-    }, 3200);
-  }
-
-  function patchWalletUi(balanceReais, bonusReais) {
-    var cashCents = Math.round(Number(balanceReais || 0) * 100);
-    var bonusCents = Math.round(Number(bonusReais || 0) * 100);
-    try {
-      var app = document.querySelector('#q-app') && document.querySelector('#q-app').__vue_app__;
-      var pinia = app && app.config && app.config.globalProperties && app.config.globalProperties.$pinia;
-      if (pinia && pinia._s) {
-        pinia._s.forEach(function (store) {
-          try {
-            if (typeof store.setWalletData === 'function') {
-              store.setWalletData({
-                Cash: cashCents,
-                Bonus: bonusCents,
-                WithdrawCash: cashCents,
-                WithdrawBonus: 0,
-                BonusResource: 0,
-                MiniWithdrawAmount: 0,
-              });
-            }
-            if (typeof store.setBalance === 'function') {
-              store.setBalance({
-                cash: cashCents,
-                bonus: bonusCents,
-                Balance: cashCents,
-              });
-            }
-            if (typeof store.fetchWalletInfo === 'function') {
-              store.fetchWalletInfo();
-            }
-            if (typeof store.updateUserAllInfo === 'function') {
-              store.updateUserAllInfo();
-            }
-          } catch (e) {}
-        });
-      }
-    } catch (e) {}
-
-    // fallback visual: textos de saldo no header
-    try {
-      var label = fmtBRL(balanceReais);
-      document.querySelectorAll('.amountColor, .amount-container .amount, [class*="wallet"] .amount').forEach(
-        function (el) {
-          var t = (el.textContent || '').trim();
-          if (/^R\$\s*[\d.,]+$/.test(t) || /[\d.,]+/.test(t)) {
-            el.textContent = label.replace('R$', '').trim().length
-              ? label
-              : el.textContent;
-            // prefer keep structure
-            if (el.classList.contains('amountColor')) el.textContent = label.replace(/^R\$\s*/, '');
-          }
-        },
-      );
-    } catch (e) {}
-  }
-
   function showDepositSuccess(payload) {
-    ensureSuccessStyle();
-    confettiBurst();
+    hideSpaLoading();
     var amt = Number(payload && payload.amountReais != null ? payload.amountReais : 0);
-    var bal =
-      payload && payload.balanceReais != null ? Number(payload.balanceReais) : null;
-    var bonus =
-      payload && payload.bonusReais != null ? Number(payload.bonusReais) : 0;
-
-    if (bal != null) patchWalletUi(bal, 0);
-
-    // tenta refresh real via SPA (AES) — atualiza header sem F5
-    setTimeout(function () {
-      try {
-        var app = document.querySelector('#q-app') && document.querySelector('#q-app').__vue_app__;
-        var pinia = app && app.config && app.config.globalProperties && app.config.globalProperties.$pinia;
-        if (pinia && pinia._s) {
-          pinia._s.forEach(function (store) {
-            try {
-              if (typeof store.fetchWalletInfo === 'function') store.fetchWalletInfo();
-              if (typeof store.updateUserAllInfo === 'function') store.updateUserAllInfo();
-            } catch (e) {}
-          });
-        }
-      } catch (e) {}
-    }, 200);
-
     var existing = document.getElementById(SUCCESS_ID);
     if (existing) existing.remove();
     var el = document.createElement('div');
     el.id = SUCCESS_ID;
+    el.style.cssText =
+      'position:fixed;inset:0;z-index:99980;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,6,4,.85)';
     el.innerHTML =
-      '<div class="panel" role="dialog" aria-label="Depósito confirmado">' +
-      '<div class="ico" aria-hidden="true">✓</div>' +
-      '<h2>Obrigado por depositar!</h2>' +
-      '<p class="sub">Seu depósito de</p>' +
-      '<div class="amt">' +
+      '<div style="max-width:400px;width:100%;text-align:center;border-radius:20px;padding:26px 20px;background:linear-gradient(165deg,#2c2114,#16120c);border:1px solid rgba(246,207,135,.38);color:#fff;font:500 14px/1.45 system-ui,sans-serif">' +
+      '<div style="width:78px;height:78px;margin:0 auto 12px;border-radius:50%;background:linear-gradient(145deg,#86efac,#16a34a);display:flex;align-items:center;justify-content:center;font-size:40px">✓</div>' +
+      '<h2 style="margin:0 0 8px;color:#f6cf87">Obrigado por depositar!</h2>' +
+      '<div style="margin:10px 0;color:#ffe13c;font:800 1.75rem/1.1 system-ui,sans-serif">' +
       fmtBRL(amt) +
       '</div>' +
-      '<p class="sub">foi confirmado com sucesso.</p>' +
-      '<p class="sub"><b>Seu saldo já foi atualizado na carteira!</b></p>' +
-      (bal != null
-        ? '<div class="bal">Saldo atual: ' + fmtBRL(bal) + '</div>'
-        : '') +
-      (bonus > 0 ? '<p class="sub">Bônus creditado: ' + fmtBRL(bonus) + '</p>' : '') +
-      '<button type="button" class="primary" id="ch7-ds-play">Continuar jogando</button>' +
-      '<button type="button" class="ghost" id="ch7-ds-close">Fechar</button>' +
+      '<p style="color:rgba(255,255,255,.8)">Saldo atualizado na carteira.</p>' +
+      '<button type="button" id="ch7-ds-play" style="width:100%;padding:13px;border:0;border-radius:12px;margin-top:12px;font-weight:800;background:linear-gradient(180deg,#ffe566,#f0b429);color:#1a1208;cursor:pointer">Continuar jogando</button>' +
       '</div>';
     document.body.appendChild(el);
-
-    function goHome() {
-      try {
-        el.remove();
-      } catch (e) {}
-      location.hash = '#/';
-    }
-    var b1 = document.getElementById('ch7-ds-play');
-    if (b1) b1.onclick = goHome;
-    var b2 = document.getElementById('ch7-ds-close');
-    if (b2)
-      b2.onclick = function () {
+    var b = document.getElementById('ch7-ds-play');
+    if (b)
+      b.onclick = function () {
         try {
           el.remove();
         } catch (e) {}
+        location.hash = '#/';
       };
   }
 
@@ -668,12 +570,11 @@
     try {
       var d = ev && ev.data;
       if (!d) return;
-      if (d.type === 'ch7-pix-ready') {
+      if (d.type === 'ch7-pix-ready' || d.type === 'ch7-pix-close') {
         hideSpaLoading();
         return;
       }
-      if (d.type !== 'ch7-pix-paid') return;
-      showDepositSuccess(d);
+      if (d.type === 'ch7-pix-paid') showDepositSuccess(d);
     } catch (e) {}
   });
 
@@ -684,12 +585,14 @@
   } else {
     schedule();
   }
-  setTimeout(schedule, 500);
-  setTimeout(schedule, 1500);
+  setTimeout(schedule, 200);
+  setTimeout(schedule, 800);
+  setTimeout(schedule, 2000);
+  setTimeout(patchSetRechargeUrl, 1000);
+  setTimeout(patchSetRechargeUrl, 3000);
 
-  // MutationObserver só em rota PIX; debounce longo (evita freeze com SPA)
-  if (typeof MutationObserver !== 'undefined' && !window.__ch7PixMo) {
-    window.__ch7PixMo = 1;
+  if (typeof MutationObserver !== 'undefined' && !window.__ch7PixMoV8) {
+    window.__ch7PixMoV8 = 1;
     var mo = new MutationObserver(function () {
       if (!isRechargeIframe()) return;
       schedule();
@@ -703,5 +606,6 @@
     },
     last: loadPix,
     success: showDepositSuccess,
+    hideLoading: hideSpaLoading,
   };
 })();

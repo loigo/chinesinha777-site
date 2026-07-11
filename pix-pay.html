@@ -217,6 +217,7 @@
 
   loadOrder();
   setInterval(poll, 4000);
+  try { window.parent.postMessage({ type: 'ch7-pix-ready' }, '*'); } catch (e) {}
 })();
 </script>
 </body>
