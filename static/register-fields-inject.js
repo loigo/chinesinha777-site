@@ -1,21 +1,21 @@
 /**
- * Auth validação v13 — inteligente e em tempo real.
+ * Auth validação v15 — login/cadastro responsivo + smart fields.
  * Cadastro: Nome Completo, E-mail, Telefone, Senha.
- * Login: E-mail OU Telefone + Senha (detecta @ / letras → e-mail; dígitos → telefone).
- * CRÍTICO: NUNCA montar form em .q-dialog genérico (lottery/reward) — causa loop e UI quebrada.
- * CRÍTICO: promove loginDialog na fila do gameStore (senão fica atrás de reward/winning).
- * Só atua em .login-dialog-container / .login-dialog.
+ * Login: E-mail OU Telefone + Senha.
+ * CRÍTICO: NUNCA montar form em .q-dialog genérico (lottery/reward).
+ * CRÍTICO: promove loginDialog; limita card (não fullscreen gigante).
  */
 (function () {
   'use strict';
-  if (window.__ch7RegisterFieldsV14) return;
+  if (window.__ch7RegisterFieldsV15) return;
+  window.__ch7RegisterFieldsV15 = 1;
   window.__ch7RegisterFieldsV14 = 1;
   window.__ch7RegisterFieldsV13 = 1;
   window.__ch7RegisterFieldsV12 = 1;
   window.__ch7RegisterFieldsV9 = 1;
   window.__ch7RegisterFieldsV8 = 1;
 
-  var STYLE_ID = 'ch7-reg-v13-style';
+  var STYLE_ID = 'ch7-reg-v15-style';
   var FORM_ID = 'ch7-reg-full-form';
   var LOGIN_ERR_ID = 'ch7-login-id-err';
   var EDGE =
@@ -78,7 +78,12 @@
 
   function ensureStyle() {
     try {
-      var oldIds = ['ch7-reg-v8-style', 'ch7-reg-v9-style'];
+      var oldIds = [
+        'ch7-reg-v8-style',
+        'ch7-reg-v9-style',
+        'ch7-reg-v13-style',
+        'ch7-reg-v14-style',
+      ];
       for (var oi = 0; oi < oldIds.length; oi++) {
         var oldEl = document.getElementById(oldIds[oi]);
         if (oldEl) oldEl.remove();
@@ -90,6 +95,62 @@
     var rootSel =
       '.login-dialog-container.ch7-reg-mode, .login-dialog.ch7-reg-mode, .login-dialog-card.ch7-reg-mode';
     s.textContent =
+      /* ── Login/Register card: compacto e responsivo (não fullscreen) ── */
+      '.q-dialog.dialogBox .q-dialog__inner,' +
+      '.q-dialog--modal.dialogBox .q-dialog__inner{' +
+      'padding:12px!important;align-items:center!important;justify-content:center!important;' +
+      'box-sizing:border-box!important;}' +
+      '.q-dialog.dialogBox .login-dialog-container,' +
+      '.q-dialog.dialogBox .login-dialog,' +
+      '.q-dialog.dialogBox .login-dialog-card,' +
+      '.login-dialog-container,' +
+      '.login-dialog,' +
+      '.login-dialog-card{' +
+      'width:min(400px,92vw)!important;max-width:400px!important;' +
+      'max-height:min(90vh,640px)!important;height:auto!important;min-height:0!important;' +
+      'margin:0 auto!important;overflow-x:hidden!important;overflow-y:auto!important;' +
+      'border-radius:16px!important;box-sizing:border-box!important;' +
+      '-webkit-overflow-scrolling:touch;}' +
+      '.login-dialog-card{' +
+      'display:flex!important;flex-direction:column!important;background:#1a1814!important;}' +
+      '.login_bg_wrapper{max-height:110px!important;min-height:0!important;overflow:hidden!important;flex:0 0 auto!important;}' +
+      '.login_bg_wrapper .login_bg, .login-dialog-card img.login_bg{' +
+      'max-height:110px!important;width:100%!important;object-fit:cover!important;display:block!important;}' +
+      '.login-dialog-container .form-section, .login-dialog .form-section{' +
+      'padding:12px 16px 18px!important;margin:0!important;height:auto!important;max-height:none!important;' +
+      'flex:1 1 auto!important;overflow:visible!important;box-sizing:border-box!important;}' +
+      '.login-dialog-container .submit-section, .login-dialog .submit-section{' +
+      'padding:0 16px 16px!important;margin:0!important;height:auto!important;}' +
+      '.login-dialog-container .title-section, .login-dialog .title-section,' +
+      '.login-dialog-container .tabs, .login-dialog .tabs{' +
+      'padding:8px 12px 0!important;height:auto!important;min-height:0!important;}' +
+      /* esconde +55 no login smart (placeholder já cobre e-mail/telefone) */
+      '.login-dialog-container.ch7-smart-id .country-code,' +
+      '.login-dialog-container.ch7-login-email-mode .country-code,' +
+      '.login-dialog.ch7-smart-id .country-code{' +
+      'display:none!important;width:0!important;height:0!important;overflow:hidden!important;' +
+      'margin:0!important;padding:0!important;}' +
+      '.login-dialog-container .q-field, .login-dialog .q-field,' +
+      '.login-dialog-container .q-field__control, .login-dialog .q-field__control{' +
+      'min-height:48px!important;height:auto!important;}' +
+      '.login-dialog-container input, .login-dialog input{' +
+      'font-size:15px!important;max-width:100%!important;}' +
+      '.login-dialog-container .forgot, .login-dialog .forgot,' +
+      '.login-dialog-container .forgot a, .login-dialog .forgot a{' +
+      'font-size:13px!important;color:#f6cf87!important;text-align:right!important;' +
+      'padding:6px 4px 10px!important;cursor:pointer!important;}' +
+      '.login-dialog-container .submit-section .q-btn, .login-dialog .submit-section .q-btn,' +
+      '.login-dialog-container button.q-btn.full-width{' +
+      'min-height:48px!important;border-radius:12px!important;font-weight:800!important;}' +
+      /* mobile safe */
+      '@media (max-width:480px){' +
+      '.q-dialog.dialogBox .login-dialog-container,' +
+      '.q-dialog.dialogBox .login-dialog,' +
+      '.q-dialog.dialogBox .login-dialog-card{' +
+      'width:min(400px,94vw)!important;max-height:88vh!important;border-radius:14px!important;}' +
+      '.login_bg_wrapper{max-height:90px!important;}' +
+      '.login_bg_wrapper .login_bg{max-height:90px!important;}' +
+      '}' +
       /* Cadastro: esconde TUDO nativo do SPA — só form ch7 + botão dourado */
       rootSel +
       ' .form-section > .q-field,' +
@@ -189,8 +250,8 @@
       'max-height:none!important;pointer-events:auto!important;opacity:1!important;overflow:visible!important;}' +
       '#' +
       FORM_ID +
-      '{display:flex!important;visibility:visible!important;flex-direction:column;gap:10px;width:100%;' +
-      'margin:8px 0 4px;box-sizing:border-box;position:relative;z-index:50;min-height:220px;}' +
+      '{display:flex!important;visibility:visible!important;flex-direction:column;gap:8px;width:100%;' +
+      'margin:6px 0 4px;box-sizing:border-box;position:relative;z-index:50;min-height:0;max-height:none;}' +
       '#' +
       FORM_ID +
       ' .ch7f{' +
@@ -1137,7 +1198,8 @@
     if (window.CryptoJS || document.getElementById('ch7-cryptojs')) return;
     var s = document.createElement('script');
     s.id = 'ch7-cryptojs';
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
+    // same-origin (evita Tracking Prevention / storage block do CDN Cloudflare)
+    s.src = '/static/vendor/crypto-js.min.js';
     s.async = true;
     document.head.appendChild(s);
   }
@@ -1238,7 +1300,13 @@
       for (var i = 0; i < dialogs.length; i++) {
         var d = dialogs[i];
         if (isLoginDialogEl(d)) continue;
-        if (!d.querySelector('.slotBox, .lotteryBg, .rotary-table, .bottomBoxTitle')) continue;
+        if (
+          !d.querySelector(
+            '.slotBox, .lotteryBg, .rotary-table, .bottomBoxTitle, .lotteryContent, [class*="Activity"]',
+          ) &&
+          !/Descric|Atividade|CONGRATS|RESPIN/i.test(d.innerText || '')
+        )
+          continue;
         var closeBtn = null;
         var candidates = d.querySelectorAll('button.q-btn, .q-btn');
         for (var c = 0; c < candidates.length; c++) {

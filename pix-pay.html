@@ -102,7 +102,7 @@
     </div>
     <div id="err" class="err" style="display:none"></div>
   </div>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="/static/vendor/qrcode.min.js"></script>
 <script>
 (function () {
   var EDGE = 'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/gofun';
@@ -145,17 +145,46 @@
     var box = document.getElementById('qrBox');
     box.innerHTML = '';
     var size = 280;
-    if (window.QRCode && QRCode.toCanvas) {
-      var c = document.createElement('canvas');
-      box.appendChild(c);
-      QRCode.toCanvas(c, pix, { width: size, margin: 1 }, function (err) {
-        if (err) {
-          box.innerHTML = '<img alt="QR" width="'+size+'" height="'+size+'" src="https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data=' + encodeURIComponent(pix) + '"/>';
-        }
-      });
-    } else {
-      box.innerHTML = '<img alt="QR" width="'+size+'" height="'+size+'" src="https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data=' + encodeURIComponent(pix) + '"/>';
-    }
+    try {
+      // node-qrcode (toCanvas) ou qrcodejs (constructor) — ambos locais
+      if (window.QRCode && typeof QRCode.toCanvas === 'function') {
+        var c = document.createElement('canvas');
+        box.appendChild(c);
+        QRCode.toCanvas(c, pix, { width: size, margin: 1 }, function (err) {
+          if (err) renderQrFallback(box, pix, size);
+        });
+        return;
+      }
+      if (window.QRCode) {
+        var hold = document.createElement('div');
+        box.appendChild(hold);
+        // eslint-disable-next-line no-new
+        new QRCode(hold, {
+          text: pix,
+          width: size,
+          height: size,
+          correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.M : 0,
+        });
+        return;
+      }
+    } catch (e) {}
+    renderQrFallback(box, pix, size);
+  }
+  function renderQrFallback(box, pix, size) {
+    // fallback same-origin data URL via simple canvas if available, else external image
+    try {
+      if (window.QRCode && QRCode.toDataURL) {
+        QRCode.toDataURL(pix, { width: size, margin: 1 }, function (err, url) {
+          if (!err && url) {
+            box.innerHTML = '<img alt="QR" width="'+size+'" height="'+size+'" src="'+url+'"/>';
+          } else {
+            box.innerHTML = '<p style="color:#333;font-size:13px;padding:12px;text-align:center">Use o código copia e cola abaixo.</p>';
+          }
+        });
+        return;
+      }
+    } catch (e2) {}
+    box.innerHTML = '<p style="color:#333;font-size:13px;padding:12px;text-align:center">Use o código copia e cola abaixo.</p>';
   }
 
   function tickTtl() {

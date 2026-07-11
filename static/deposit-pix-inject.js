@@ -25,7 +25,8 @@
     try {
       var s = document.createElement('script');
       s.id = 'ch7-cryptojs';
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
+      // same-origin — evita "Tracking Prevention blocked storage" do CDN Cloudflare
+      s.src = '/static/vendor/crypto-js.min.js';
       s.async = true;
       document.head.appendChild(s);
     } catch (e) {}

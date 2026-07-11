@@ -1,10 +1,11 @@
 /**
- * Esqueci a senha — modal limpo + API local/edge.
- * Intercepta .forgot e "Esqueceu a senha?" sem deixar o SPA nativo quebrar.
+ * Esqueci a senha — modal compacto (não gigante) + API local/edge.
+ * v3: tamanho fixo/responsivo, tipografia controlada, z-index acima do login.
  */
 (function () {
   'use strict';
-  if (window.__ch7ForgotV2) return;
+  if (window.__ch7ForgotV3) return;
+  window.__ch7ForgotV3 = 1;
   window.__ch7ForgotV2 = 1;
   window.__ch7ForgotV1 = 1;
 
@@ -14,7 +15,7 @@
   var ANON =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
   var MODAL_ID = 'ch7-forgot-modal';
-  var STYLE_ID = 'ch7-forgot-style';
+  var STYLE_ID = 'ch7-forgot-style-v3';
 
   function isLocal() {
     try {
@@ -26,73 +27,110 @@
   }
 
   function apiBase() {
-    // local: same-origin (server.mjs)
     if (isLocal()) return location.origin + '/api/auth';
     return EDGE;
   }
 
   function ensureStyle() {
+    try {
+      var old = document.getElementById('ch7-forgot-style');
+      if (old) old.remove();
+    } catch (e0) {}
     if (document.getElementById(STYLE_ID)) return;
     var s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent =
       '#' +
       MODAL_ID +
-      '{position:fixed;inset:0;z-index:99996;display:flex;align-items:center;justify-content:center;' +
-      'padding:16px;background:rgba(6,5,4,.9);backdrop-filter:blur(4px);}' +
+      '{position:fixed!important;inset:0!important;z-index:100050!important;' +
+      'display:flex!important;align-items:center!important;justify-content:center!important;' +
+      'padding:16px!important;margin:0!important;width:100%!important;height:100%!important;' +
+      'max-width:none!important;max-height:none!important;box-sizing:border-box!important;' +
+      'background:rgba(6,5,4,.88)!important;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);' +
+      'font-size:14px!important;line-height:1.4!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-card{max-width:400px;width:100%;border-radius:18px;padding:22px 18px;' +
-      'background:linear-gradient(165deg,#2c2114 0%,#16120c 100%);border:1px solid rgba(246,207,135,.35);' +
-      'color:#fff;font:500 14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;' +
-      'box-shadow:0 20px 50px rgba(0,0,0,.55);position:relative;}' +
+      ' *{box-sizing:border-box!important;max-width:100%;}' +
       '#' +
       MODAL_ID +
-      ' h2{margin:0 0 8px;color:#f6cf87;font:800 1.15rem/1.3 system-ui,sans-serif;text-align:center;}' +
+      ' .ch7-fg-card{' +
+      'position:relative!important;width:100%!important;max-width:360px!important;' +
+      'height:auto!important;max-height:min(90vh,480px)!important;overflow:auto!important;' +
+      'margin:0 auto!important;padding:20px 16px 16px!important;border-radius:16px!important;' +
+      'background:linear-gradient(165deg,#2c2114 0%,#16120c 100%)!important;' +
+      'border:1px solid rgba(246,207,135,.35)!important;color:#fff!important;' +
+      'font:500 14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif!important;' +
+      'box-shadow:0 16px 40px rgba(0,0,0,.55)!important;flex:0 1 auto!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-sub{margin:0 0 16px;color:#aeb7bb;font-size:13px;text-align:center;line-height:1.45;}' +
+      ' h2,#' +
+      MODAL_ID +
+      ' #ch7-fg-title{margin:0 0 6px!important;color:#f6cf87!important;' +
+      'font:800 1.1rem/1.3 system-ui,sans-serif!important;text-align:center!important;' +
+      'letter-spacing:0!important;text-transform:none!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);' +
-      'background:rgba(255,255,255,.06);color:#fff;font:400 15px system-ui,sans-serif;margin:0 0 10px;' +
-      'outline:0;box-sizing:border-box;}' +
+      ' .ch7-fg-sub{margin:0 0 14px!important;color:#aeb7bb!important;font-size:12.5px!important;' +
+      'line-height:1.45!important;text-align:center!important;font-weight:500!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-input:focus{border-color:rgba(246,207,135,.55);box-shadow:0 0 0 2px rgba(246,207,135,.12);}' +
+      ' .ch7-fg-sub b{color:#fff!important;font-weight:700!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-msg{display:none;font-size:13px;margin:0 0 10px;line-height:1.4;padding:8px 10px;border-radius:10px;}' +
+      ' .ch7-fg-input{width:100%!important;height:46px!important;min-height:46px!important;' +
+      'max-height:46px!important;padding:0 14px!important;margin:0 0 10px!important;' +
+      'border-radius:12px!important;border:1px solid rgba(255,255,255,.12)!important;' +
+      'background:rgba(255,255,255,.06)!important;color:#fff!important;' +
+      'font:400 15px/1.2 system-ui,sans-serif!important;outline:0!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-msg.show{display:block;}' +
+      ' .ch7-fg-input:focus{border-color:rgba(246,207,135,.55)!important;' +
+      'box-shadow:0 0 0 2px rgba(246,207,135,.12)!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-msg.ok{background:rgba(123,254,124,.1);color:#7bfe7c;border:1px solid rgba(123,254,124,.25);}' +
+      ' .ch7-fg-msg{display:none;font-size:12.5px!important;margin:0 0 10px!important;' +
+      'line-height:1.4!important;padding:8px 10px!important;border-radius:10px!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-msg.err{background:rgba(255,120,120,.1);color:#ff9b9b;border:1px solid rgba(255,120,120,.25);}' +
+      ' .ch7-fg-msg.show{display:block!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-send{width:100%;padding:13px;border:0;border-radius:12px;font-weight:800;cursor:pointer;' +
-      'background:linear-gradient(180deg,#ffe566,#f0b429 55%,#d4920a);color:#1a1208;font-size:15px;}' +
+      ' .ch7-fg-msg.ok{background:rgba(123,254,124,.1)!important;color:#7bfe7c!important;' +
+      'border:1px solid rgba(123,254,124,.25)!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-send:disabled{opacity:.65;cursor:wait;}' +
+      ' .ch7-fg-msg.err{background:rgba(255,120,120,.1)!important;color:#ff9b9b!important;' +
+      'border:1px solid rgba(255,120,120,.25)!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-close{width:100%;margin-top:8px;padding:12px;border:0;border-radius:12px;font-weight:700;' +
-      'cursor:pointer;background:#323749;color:#fff;}' +
+      ' .ch7-fg-send{width:100%!important;height:46px!important;padding:0 14px!important;margin:0!important;' +
+      'border:0!important;border-radius:12px!important;font:800 15px/1 system-ui,sans-serif!important;' +
+      'cursor:pointer!important;background:linear-gradient(180deg,#ffe566,#f0b429 55%,#d4920a)!important;' +
+      'color:#1a1208!important;box-shadow:0 6px 16px rgba(240,180,41,.25)!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-dev{display:none;margin-top:10px;padding:10px;border-radius:10px;background:rgba(246,207,135,.08);' +
-      'border:1px dashed rgba(246,207,135,.3);font-size:12px;word-break:break-all;}' +
+      ' .ch7-fg-send:disabled{opacity:.65!important;cursor:wait!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-dev.show{display:block;}' +
+      ' .ch7-fg-close{width:100%!important;height:42px!important;margin-top:8px!important;padding:0 14px!important;' +
+      'border:0!important;border-radius:12px!important;font:700 14px/1 system-ui,sans-serif!important;' +
+      'cursor:pointer!important;background:#323749!important;color:#fff!important;}' +
       '#' +
       MODAL_ID +
-      ' .ch7-fg-dev a{color:#f6cf87;font-weight:700;}';
+      ' .ch7-fg-dev{display:none;margin-top:10px!important;padding:10px!important;border-radius:10px!important;' +
+      'background:rgba(246,207,135,.08)!important;border:1px dashed rgba(246,207,135,.3)!important;' +
+      'font-size:11px!important;line-height:1.4!important;word-break:break-all!important;}' +
+      '#' +
+      MODAL_ID +
+      ' .ch7-fg-dev.show{display:block!important;}' +
+      '#' +
+      MODAL_ID +
+      ' .ch7-fg-dev a{color:#f6cf87!important;font-weight:700!important;font-size:11px!important;}' +
+      '@media (max-width:400px){#' +
+      MODAL_ID +
+      '{padding:12px!important;}#' +
+      MODAL_ID +
+      ' .ch7-fg-card{max-width:100%!important;padding:16px 14px 14px!important;}}';
     document.head.appendChild(s);
   }
 
@@ -114,9 +152,9 @@
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-labelledby', 'ch7-fg-title');
     el.innerHTML =
-      '<div class="ch7-fg-card">' +
+      '<div class="ch7-fg-card" role="document">' +
       '<h2 id="ch7-fg-title">Esqueceu a senha?</h2>' +
-      '<p class="ch7-fg-sub">Informe o <b>e-mail</b> ou <b>telefone</b> da conta. Enviaremos um link válido por 15 minutos.</p>' +
+      '<p class="ch7-fg-sub">Informe o <b>e-mail</b> ou <b>telefone</b> da conta.<br/>Enviamos um link válido por 15 minutos.</p>' +
       '<input class="ch7-fg-input" id="ch7-fg-id" type="text" inputmode="email" autocomplete="username" ' +
       'placeholder="E-mail ou telefone com DDD" maxlength="80"/>' +
       '<div class="ch7-fg-msg" id="ch7-fg-msg" role="alert"></div>' +
@@ -124,6 +162,17 @@
       '<button type="button" class="ch7-fg-close" id="ch7-fg-close">Voltar ao login</button>' +
       '<div class="ch7-fg-dev" id="ch7-fg-dev"></div>' +
       '</div>';
+    // inline guards (caso CSS do SPA force font/size gigante)
+    try {
+      el.style.cssText =
+        'position:fixed;inset:0;z-index:100050;display:flex;align-items:center;justify-content:center;padding:16px;';
+      var card = el.querySelector('.ch7-fg-card');
+      if (card) {
+        card.style.cssText =
+          'max-width:360px;width:100%;max-height:min(90vh,480px);height:auto;margin:0 auto;padding:20px 16px 16px;' +
+          'border-radius:16px;overflow:auto;';
+      }
+    } catch (eInline) {}
     document.body.appendChild(el);
 
     var msg = document.getElementById('ch7-fg-msg');
