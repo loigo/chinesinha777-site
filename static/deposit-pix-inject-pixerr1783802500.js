@@ -4,7 +4,8 @@
  */
 (function () {
   'use strict';
-  if (window.__ch7DepositPixInitV10) return;
+  if (window.__ch7DepositPixInitV12) return;
+  window.__ch7DepositPixInitV12 = 1;
   window.__ch7DepositPixInitV10 = 1;
   window.__ch7DepositPixInitV9 = 1;
   window.__ch7DepositPixInitV8 = 1;
@@ -17,6 +18,19 @@
   var FALLBACK_ID = 'ch7-pix-fallback';
   var MAX_AGE_MS = 60 * 60 * 1000;
   var CRYPTO_KEY = '9EzYC7IZE1PTREu8';
+
+  // Decrypt AES do shop/order no intercept — precisa CryptoJS cedo
+  function ensureCrypto() {
+    if (window.CryptoJS || document.getElementById('ch7-cryptojs')) return;
+    try {
+      var s = document.createElement('script');
+      s.id = 'ch7-cryptojs';
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
+      s.async = true;
+      document.head.appendChild(s);
+    } catch (e) {}
+  }
+  ensureCrypto();
 
   function isRechargeIframe() {
     return /#\/?rechargeIframe\b/i.test(String(location.hash || ''));
@@ -555,10 +569,11 @@
       'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">' +
       '<p style="margin:0 0 8px;color:rgba(255,255,255,.9);font-size:13.5px;line-height:1.5">' +
       'Não foi possível gerar o PIX no momento.</p>' +
-      '<p style="margin:0 0 8px;color:rgba(255,255,255,.82);font-size:13.5px;line-height:1.5">' +
-      'Sua sessão pode ter expirado.</p>' +
-      '<p style="margin:0 0 8px;color:rgba(255,255,255,.82);font-size:13.5px;line-height:1.5">' +
-      'Faça login novamente e tente o depósito.</p>' +
+      (apiMsg && /logado|sess[aã]o|expir/i.test(apiMsg)
+        ? '<p style="margin:0 0 8px;color:rgba(255,255,255,.82);font-size:13.5px;line-height:1.5">' +
+          'Faça login novamente e tente o depósito.</p>'
+        : '<p style="margin:0 0 8px;color:rgba(255,255,255,.82);font-size:13.5px;line-height:1.5">' +
+          'Verifique o valor do pacote e tente de novo. Se já estiver logado, aguarde 1 minuto e repita.</p>') +
       '<p style="margin:0;color:rgba(255,255,255,.75);font-size:13px;line-height:1.5">' +
       'Se o problema continuar, contate o suporte com o código do erro.</p>' +
       '</div>' +

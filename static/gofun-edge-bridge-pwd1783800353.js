@@ -1,12 +1,15 @@
 /**
- * Bridge v8 — /gofun → Supabase Edge.
+ * Bridge v11 — /gofun → Supabase Edge.
  * CRÍTICO: token do jogador (ch7.*) NÃO pode ir só em Authorization —
  * o gateway Supabase engole/valida JWT e a sessão some no depósito.
  * Copia ch7.* → x-player-token + token; Authorization = Bearer ANON.
+ * v11: se SPA não manda Authorization, busca token em localStorage/pinia
+ *       (sem isso shop/order falha com "precisa estar logado").
  */
 (function () {
   'use strict';
-  if (window.__ch7GofunBridgeV10) return;
+  if (window.__ch7GofunBridgeV11) return;
+  window.__ch7GofunBridgeV11 = 1;
   window.__ch7GofunBridgeV10 = 1;
   window.__ch7GofunBridgeV9 = 1;
   window.__ch7GofunBridgeV8 = 1;
@@ -36,6 +39,60 @@
     // token gofun legado (não JWT)
     if (s.indexOf('eyJ') === 0) return false;
     return s.length >= 12 && s.indexOf('.') !== -1;
+  }
+
+  /** Token salvo pelo SPA/pinia quando o header Authorization não carrega ch7.* */
+  function getStoredPlayerToken() {
+    try {
+      var keys = [
+        'token',
+        'Token',
+        'ch7_token',
+        'auth',
+        'ch7_auth',
+        'user',
+        'userInfo',
+        'user-store',
+        'auth-store',
+      ];
+      for (var i = 0; i < keys.length; i++) {
+        var raw = localStorage.getItem(keys[i]);
+        if (!raw) continue;
+        if (isPlayerToken(raw)) return String(raw).replace(/^Bearer\s+/i, '').trim();
+        if (raw.charAt(0) === '{') {
+          try {
+            var j = JSON.parse(raw);
+            var cand =
+              j.token ||
+              j.Token ||
+              (j.state && (j.state.token || j.state.Token)) ||
+              (j.userInfo && (j.userInfo.token || j.userInfo.Token)) ||
+              (j.userInfoData && j.userInfoData.token) ||
+              '';
+            if (isPlayerToken(cand)) return String(cand).replace(/^Bearer\s+/i, '').trim();
+          } catch (e1) {}
+        }
+      }
+      // pinia persist keys genéricas
+      for (var k = 0; k < localStorage.length; k++) {
+        var key = localStorage.key(k) || '';
+        if (!/auth|user|token|persist/i.test(key)) continue;
+        var v = localStorage.getItem(key) || '';
+        if (isPlayerToken(v)) return String(v).replace(/^Bearer\s+/i, '').trim();
+        if (v.charAt(0) === '{') {
+          try {
+            var o = JSON.parse(v);
+            var t2 =
+              o.token ||
+              o.Token ||
+              (o.state && (o.state.token || o.state.Token)) ||
+              '';
+            if (isPlayerToken(t2)) return String(t2).replace(/^Bearer\s+/i, '').trim();
+          } catch (e2) {}
+        }
+      }
+    } catch (e) {}
+    return '';
   }
 
   function extractPlayerToken(headersLike) {
@@ -75,7 +132,9 @@
 
   /** Garante apikey + preserva token do jogador fora do Authorization JWT. */
   function ensureEdgeAuth(headersLike, preferTok) {
-    var tok = String(preferTok || extractPlayerToken(headersLike) || '')
+    var tok = String(
+      preferTok || extractPlayerToken(headersLike) || getStoredPlayerToken() || '',
+    )
       .replace(/^Bearer\s+/i, '')
       .trim();
     var player = isPlayerToken(tok) ? tok : '';
@@ -207,7 +266,8 @@
   function patchInitHeaders(init, mapped) {
     if (!mapped || String(mapped).indexOf('supabase.co') === -1) return init;
     init = init || {};
-    init.headers = ensureEdgeAuth(init.headers || {});
+    var prefer = extractPlayerToken(init.headers) || getStoredPlayerToken();
+    init.headers = ensureEdgeAuth(init.headers || {}, prefer);
     return init;
   }
 
@@ -297,13 +357,25 @@
         try {
           this.setRequestHeader('apikey', ANON);
         } catch (e) {}
-        if (this.__ch7PlayerTok) {
+        // fallback: SPA pode não ter setado Authorization (só token no pinia)
+        if (!this.__ch7PlayerTok || !isPlayerToken(this.__ch7PlayerTok)) {
+          this.__ch7PlayerTok = getStoredPlayerToken() || this.__ch7PlayerTok || '';
+        }
+        if (this.__ch7PlayerTok && isPlayerToken(this.__ch7PlayerTok)) {
           try {
             this.setRequestHeader('x-player-token', this.__ch7PlayerTok);
           } catch (e2) {}
           try {
             this.setRequestHeader('token', this.__ch7PlayerTok);
           } catch (e3) {}
+          try {
+            // Authorization = ANON (gateway Supabase); player vai no x-player-token
+            this.setRequestHeader('Authorization', 'Bearer ' + ANON);
+          } catch (e4) {}
+        } else {
+          try {
+            this.setRequestHeader('Authorization', 'Bearer ' + ANON);
+          } catch (e5) {}
         }
       }
     } catch (e) {}
@@ -339,15 +411,9 @@
                   .replace(/^Bearer\s+/i, '')
                   .trim() || tok;
               }
-              // pinia auth token fallback
+              // pinia / localStorage fallback (depósito PIX)
               if (!isPlayerToken(tok)) {
-                try {
-                  var raw = localStorage.getItem('auth') || localStorage.getItem('ch7_auth') || '';
-                  if (raw && raw.charAt(0) === '{') {
-                    var j = JSON.parse(raw);
-                    tok = j.token || j.Token || (j.state && j.state.token) || tok;
-                  }
-                } catch (e) {}
+                tok = getStoredPlayerToken() || tok;
               }
               config.headers = ensureEdgeAuth(config.headers, tok);
             }
