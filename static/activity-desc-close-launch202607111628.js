@@ -295,12 +295,23 @@
   }
 
   var tmr = null;
+  var __ch7ActBusy = false;
   function schedule() {
+    if (__ch7ActBusy) return;
     clearTimeout(tmr);
-    tmr = setTimeout(tick, 40);
+    tmr = setTimeout(function () {
+      __ch7ActBusy = true;
+      try {
+        tick();
+      } finally {
+        setTimeout(function () {
+          __ch7ActBusy = false;
+        }, 350);
+      }
+    }, 120);
   }
 
-  setInterval(tick, 350);
+  // sem setInterval 350ms (loop com MO)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', schedule);
   } else {
@@ -308,17 +319,25 @@
   }
   window.addEventListener('hashchange', schedule);
   window.addEventListener('resize', schedule, { passive: true });
-  setTimeout(schedule, 200);
-  setTimeout(schedule, 1000);
-  setTimeout(schedule, 2500);
-  setTimeout(schedule, 5000);
+  setTimeout(schedule, 300);
+  setTimeout(schedule, 1200);
+  setTimeout(schedule, 3000);
 
-  if (typeof MutationObserver !== 'undefined') {
-    new MutationObserver(schedule).observe(document.documentElement, {
+  if (typeof MutationObserver !== 'undefined' && !window.__ch7ActMoV2) {
+    window.__ch7ActMoV2 = 1;
+    new MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i++) {
+        var cls = String((muts[i].target && muts[i].target.className) || '');
+        if (/dialog|activity|desc|q-dialog/i.test(cls)) {
+          schedule();
+          return;
+        }
+      }
+    }).observe(document.documentElement, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['class', 'style', 'aria-hidden'],
+      attributeFilter: ['class', 'aria-hidden'],
     });
   }
 

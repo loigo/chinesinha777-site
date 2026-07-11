@@ -242,9 +242,20 @@
   }
 
   var tmr = null;
+  var __ch7WinBusy = false;
   function schedule() {
+    if (__ch7WinBusy) return;
     clearTimeout(tmr);
-    tmr = setTimeout(scanAll, 50);
+    tmr = setTimeout(function () {
+      __ch7WinBusy = true;
+      try {
+        scanAll();
+      } finally {
+        setTimeout(function () {
+          __ch7WinBusy = false;
+        }, 400);
+      }
+    }, 200);
   }
 
   if (document.readyState === 'loading') {
@@ -252,17 +263,27 @@
   } else {
     schedule();
   }
-  setTimeout(scanAll, 300);
-  setTimeout(scanAll, 1000);
-  setInterval(scanAll, 1200);
+  // sem setInterval contínuo (pesava e gerava loop com MO)
+  setTimeout(scanAll, 500);
+  setTimeout(scanAll, 2000);
+  setTimeout(scanAll, 5000);
 
-  if (!window.__ch7WinPtMo2) {
-    window.__ch7WinPtMo2 = 1;
+  if (!window.__ch7WinPtMo3) {
+    window.__ch7WinPtMo3 = 1;
     try {
-      new MutationObserver(schedule).observe(document.documentElement, {
+      new MutationObserver(function (muts) {
+        // só se parecer popup/dialog/prêmio
+        for (var i = 0; i < muts.length; i++) {
+          var t = muts[i].target;
+          var txt = (t && (t.className || t.id || '')) + '';
+          if (/dialog|award|reward|win|bonus|popup|congrat/i.test(txt)) {
+            schedule();
+            return;
+          }
+        }
+      }).observe(document.documentElement, {
         childList: true,
         subtree: true,
-        characterData: true,
       });
     } catch (e) {}
   }

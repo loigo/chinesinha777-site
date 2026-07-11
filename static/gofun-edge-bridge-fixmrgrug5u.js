@@ -6,7 +6,9 @@
  */
 (function () {
   'use strict';
-  if (window.__ch7GofunBridgeV8) return;
+  if (window.__ch7GofunBridgeV10) return;
+  window.__ch7GofunBridgeV10 = 1;
+  window.__ch7GofunBridgeV9 = 1;
   window.__ch7GofunBridgeV8 = 1;
   window.__ch7GofunBridgeV7 = 1;
 
@@ -130,6 +132,12 @@
     );
   }
 
+  /** Local dev: server.mjs tem P0 (vip/shop/auth) — NÃO mandar pro Edge vazio */
+  function isLocalDev() {
+    var h = location.hostname || '';
+    return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+  }
+
   /** /painel/* não existe no GH Pages — reescreve ou stub. */
   function mapPainelUrl(u) {
     try {
@@ -182,6 +190,10 @@
       if (!isOurHost(url.hostname) && u.indexOf('/gofun/') === -1) return u;
 
       if (url.pathname.indexOf('/gofun') === 0) {
+        // localhost → same-origin (front/server.mjs com List VIP completa)
+        if (isLocalDev()) {
+          return location.origin + url.pathname + url.search;
+        }
         return GOFUN + url.pathname.replace(/^\/gofun/, '') + url.search;
       }
       if (url.pathname.indexOf('/banner/') === 0 || url.pathname.indexOf('/banners/') === 0) {
@@ -345,10 +357,11 @@
       }
     } catch (e) {}
   }
-  setInterval(hookAxios, 600);
+  // hook axios poucas vezes (sem interval infinito)
   setTimeout(hookAxios, 100);
   setTimeout(hookAxios, 500);
   setTimeout(hookAxios, 1500);
+  setTimeout(hookAxios, 4000);
 
   // SW cleanup
   if ('serviceWorker' in navigator) {

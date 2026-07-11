@@ -1,17 +1,21 @@
 /**
- * Auth validação v9 — inteligente e em tempo real.
+ * Auth validação v13 — inteligente e em tempo real.
  * Cadastro: Nome Completo, E-mail, Telefone, Senha.
  * Login: E-mail OU Telefone + Senha (detecta @ / letras → e-mail; dígitos → telefone).
- * Nunca mostra "telefone inválido" quando o valor é e-mail.
+ * CRÍTICO: NUNCA montar form em .q-dialog genérico (lottery/reward) — causa loop e UI quebrada.
+ * CRÍTICO: promove loginDialog na fila do gameStore (senão fica atrás de reward/winning).
+ * Só atua em .login-dialog-container / .login-dialog.
  */
 (function () {
   'use strict';
-  if (window.__ch7RegisterFieldsV9) return;
+  if (window.__ch7RegisterFieldsV14) return;
+  window.__ch7RegisterFieldsV14 = 1;
+  window.__ch7RegisterFieldsV13 = 1;
+  window.__ch7RegisterFieldsV12 = 1;
   window.__ch7RegisterFieldsV9 = 1;
-  // supersede v8 flag se ambos carregarem
   window.__ch7RegisterFieldsV8 = 1;
 
-  var STYLE_ID = 'ch7-reg-v9-style';
+  var STYLE_ID = 'ch7-reg-v13-style';
   var FORM_ID = 'ch7-reg-full-form';
   var LOGIN_ERR_ID = 'ch7-login-id-err';
   var EDGE =
@@ -73,21 +77,120 @@
   }
 
   function ensureStyle() {
+    try {
+      var oldIds = ['ch7-reg-v8-style', 'ch7-reg-v9-style'];
+      for (var oi = 0; oi < oldIds.length; oi++) {
+        var oldEl = document.getElementById(oldIds[oi]);
+        if (oldEl) oldEl.remove();
+      }
+    } catch (e) {}
     if (document.getElementById(STYLE_ID)) return;
     var s = document.createElement('style');
     s.id = STYLE_ID;
+    var rootSel =
+      '.login-dialog-container.ch7-reg-mode, .login-dialog.ch7-reg-mode, .login-dialog-card.ch7-reg-mode';
     s.textContent =
-      '.login-dialog-container.ch7-reg-mode .form-section .q-field,' +
-      '.login-dialog-container.ch7-reg-mode .form-section .q-input,' +
-      '.login-dialog-container.ch7-reg-mode .form-section form > .q-field,' +
-      '.login-dialog.ch7-reg-mode .form-section .q-field{' +
-      'display:none!important;}' +
-      '.login-dialog-container.ch7-reg-mode .form-section > .q-btn,' +
-      '.login-dialog.ch7-reg-mode .form-section > .q-btn{' +
-      'display:none!important;}' +
+      /* Cadastro: esconde TUDO nativo do SPA — só form ch7 + botão dourado */
+      rootSel +
+      ' .form-section > .q-field,' +
+      rootSel +
+      ' .form-section > .q-input,' +
+      rootSel +
+      ' .form-section .q-field,' +
+      rootSel +
+      ' .form-section .q-input,' +
+      rootSel +
+      ' .form-section form > .q-field,' +
+      rootSel +
+      ' .form-section form > .q-input,' +
+      rootSel +
+      ' .form-section .custom-input,' +
+      rootSel +
+      ' .form-section .country-code,' +
+      rootSel +
+      ' .form-section .icon-wrapper,' +
+      rootSel +
+      ' .form-section .forgot,' +
+      rootSel +
+      ' .form-section .agreement,' +
+      rootSel +
+      ' .form-section .register,' +
+      rootSel +
+      ' .form-section .bonus,' +
+      rootSel +
+      ' .form-section .bonus-text,' +
+      rootSel +
+      ' .submit-section,' +
+      rootSel +
+      ' .submit-section .q-btn,' +
+      rootSel +
+      ' .form-section > button.q-btn,' +
+      rootSel +
+      ' .form-section > .q-btn,' +
+      rootSel +
+      ' .form-section button.q-btn:not(.ch7-submit):not(#ch7f-submit),' +
+      rootSel +
+      ' .login-dialog-card > button.q-btn:not(.ch7-submit),' +
+      rootSel +
+      ' button.q-btn.full-width:not(.ch7-submit),' +
+      /* irmãos nativos após nosso form */
       '#' +
       FORM_ID +
-      '{display:flex;flex-direction:column;gap:10px;width:100%;margin:8px 0 4px;box-sizing:border-box;position:relative;z-index:20;}' +
+      ' ~ .q-field, #' +
+      FORM_ID +
+      ' ~ .q-btn, #' +
+      FORM_ID +
+      ' ~ .q-input, #' +
+      FORM_ID +
+      ' ~ .custom-input, #' +
+      FORM_ID +
+      ' ~ .submit-section, #' +
+      FORM_ID +
+      ' ~ .forgot, #' +
+      FORM_ID +
+      ' ~ .register, #' +
+      FORM_ID +
+      ' ~ .agreement, #' +
+      FORM_ID +
+      ' ~ .bonus, #' +
+      FORM_ID +
+      ' ~ .country-code, #' +
+      FORM_ID +
+      ' ~ form, #' +
+      FORM_ID +
+      ' ~ .q-form, #' +
+      FORM_ID +
+      ' ~ [class*="q-field"]{' +
+      'display:none!important;visibility:hidden!important;height:0!important;min-height:0!important;' +
+      'max-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;' +
+      'pointer-events:none!important;opacity:0!important;border:0!important;}' +
+      /* form nativo inteiro quando nosso form existe */
+      rootSel +
+      ' .form-section > form.q-form,' +
+      rootSel +
+      ' .form-section > .q-form{' +
+      'display:none!important;height:0!important;overflow:hidden!important;opacity:0!important;' +
+      'pointer-events:none!important;}' +
+      /* tabs Login/Registrar do dialog ficam visíveis */
+      rootSel +
+      ' .title-section,' +
+      rootSel +
+      ' .tabs,' +
+      rootSel +
+      ' .tab,' +
+      rootSel +
+      ' .q-tab{display:flex!important;visibility:visible!important;height:auto!important;' +
+      'min-height:0!important;max-height:none!important;opacity:1!important;pointer-events:auto!important;overflow:visible!important;}' +
+      /* nosso botão dourado sempre visível */
+      '#' +
+      FORM_ID +
+      ' .ch7-submit, button.ch7-submit, #ch7f-submit{' +
+      'display:block!important;visibility:visible!important;height:auto!important;min-height:48px!important;' +
+      'max-height:none!important;pointer-events:auto!important;opacity:1!important;overflow:visible!important;}' +
+      '#' +
+      FORM_ID +
+      '{display:flex!important;visibility:visible!important;flex-direction:column;gap:10px;width:100%;' +
+      'margin:8px 0 4px;box-sizing:border-box;position:relative;z-index:50;min-height:220px;}' +
       '#' +
       FORM_ID +
       ' .ch7f{' +
@@ -153,30 +256,75 @@
       '#' +
       LOGIN_ERR_ID +
       '.show{display:block;}' +
-      /* esconde erros Quasar genéricos de telefone quando estamos em modo e-mail */
       '.login-dialog-container.ch7-login-email-mode .q-field__messages,' +
-      '.login-dialog-container.ch7-login-email-mode .q-field__bottom{' +
-      'color:#ff9b9b;}' +
+      '.login-dialog-container.ch7-login-email-mode .q-field__bottom{color:#ff9b9b;}' +
       '.login-dialog-container.ch7-smart-id input{max-width:100%;}';
     document.head.appendChild(s);
   }
 
+  /** Só dialog de login/cadastro — NUNCA lottery/reward/activity */
+  function isLoginDialogEl(el) {
+    if (!el || !el.querySelector) return false;
+    // rejeita popups de atividade/lottery primeiro
+    if (el.querySelector('.slotBox, .lotteryBg, .rotary-table, .lotteryBtnBox')) return false;
+    if (el.classList && (el.classList.contains('login-dialog-container') || el.classList.contains('login-dialog')))
+      return true;
+    if (el.querySelector('.login-dialog-container, .login-dialog')) return true;
+    // form-section só conta se NÃO for activity desc
+    if (el.querySelector('.form-section') && !el.querySelector('.bottomBoxTitle, .slotBox')) return true;
+    return false;
+  }
+
   function dialogRoot() {
-    return (
+    var c =
       document.querySelector('.login-dialog-container') ||
       document.querySelector('.login-dialog') ||
-      document.querySelector('.q-dialog .login-dialog-card') ||
-      document.querySelector('.q-dialog') ||
-      null
-    );
+      document.querySelector('.q-dialog .login-dialog-card');
+    if (c && isLoginDialogEl(c)) return c;
+    // último recurso: q-dialog que contenha form-section de login
+    var dialogs = document.querySelectorAll('.q-dialog');
+    for (var i = 0; i < dialogs.length; i++) {
+      var d = dialogs[i];
+      if (d.querySelector('.login-dialog-container, .login-dialog, .form-section.login, .form-section')) {
+        if (!d.querySelector('.slotBox, .lotteryBg, .rotary-table')) {
+          var inner =
+            d.querySelector('.login-dialog-container') ||
+            d.querySelector('.login-dialog') ||
+            d.querySelector('.form-section');
+          if (inner) return inner.closest('.login-dialog-container') || inner.closest('.login-dialog') || inner;
+        }
+      }
+    }
+    return null;
   }
 
   function formSection(root) {
-    return (
-      (root && root.querySelector('.form-section')) ||
-      (root && root.querySelector('form')) ||
-      root
-    );
+    if (!root) return null;
+    return root.querySelector('.form-section') || null;
+  }
+
+  /** Remove form se ficou preso em dialog errado (lottery etc.) */
+  function cleanupOrphanForm() {
+    var form = document.getElementById(FORM_ID);
+    if (!form) return;
+    var ok =
+      form.closest('.login-dialog-container') ||
+      form.closest('.login-dialog') ||
+      (form.closest('.form-section') && !form.closest('.slotBox, .lotteryBg'));
+    if (!ok) {
+      try {
+        form.remove();
+      } catch (e) {}
+    }
+    // limpa classes em dialogs que não são login
+    try {
+      var bad = document.querySelectorAll('.q-dialog.ch7-reg-mode, .q-dialog.ch7-smart-id');
+      for (var i = 0; i < bad.length; i++) {
+        if (!isLoginDialogEl(bad[i])) {
+          bad[i].classList.remove('ch7-reg-mode', 'ch7-smart-id', 'ch7-login-email-mode');
+        }
+      }
+    } catch (e2) {}
   }
 
   function modeFromUi(root) {
@@ -632,14 +780,21 @@
     ensureStyle();
     var root = dialogRoot();
     if (!root) return;
-    root.classList.add('ch7-reg-mode');
     root.classList.remove('ch7-login-email-mode');
 
     var section = formSection(root);
-    if (!section) return;
+    if (!section) {
+      // sem seção: não esconde nativos
+      root.classList.remove('ch7-reg-mode');
+      return;
+    }
 
     var existing = document.getElementById(FORM_ID);
-    if (existing && section.contains(existing)) return;
+    if (existing && section.contains(existing)) {
+      root.classList.add('ch7-reg-mode');
+      hideNativeRegisterButtons(root);
+      return;
+    }
     if (existing) {
       try {
         existing.remove();
@@ -649,6 +804,76 @@
     var form = buildForm();
     if (section.firstChild) section.insertBefore(form, section.firstChild);
     else section.appendChild(form);
+    // só ativa hide dos nativos DEPOIS do form no DOM
+    root.classList.add('ch7-reg-mode');
+    hideNativeRegisterButtons(root);
+  }
+
+  /** Esconde botão + campos SPA nativos; mantém só #ch7f-submit dourado */
+  function hideNativeRegisterButtons(root) {
+    if (!root) return;
+    try {
+      var hideEl = function (el) {
+        if (!el || el.id === FORM_ID || el.closest('#' + FORM_ID)) return;
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('visibility', 'hidden', 'important');
+        el.style.setProperty('height', '0', 'important');
+        el.style.setProperty('max-height', '0', 'important');
+        el.style.setProperty('overflow', 'hidden', 'important');
+        el.style.setProperty('opacity', '0', 'important');
+        el.style.setProperty('pointer-events', 'none', 'important');
+        el.setAttribute('aria-hidden', 'true');
+      };
+
+      var selectors = [
+        '.submit-section',
+        '.form-section .q-field',
+        '.form-section .q-input',
+        '.form-section .custom-input',
+        '.form-section .forgot',
+        '.form-section .register',
+        '.form-section .agreement',
+        '.form-section .bonus',
+        '.form-section .country-code',
+        '.form-section > form',
+        '.form-section > .q-form',
+      ];
+      for (var s = 0; s < selectors.length; s++) {
+        var nodes = root.querySelectorAll(selectors[s]);
+        for (var n = 0; n < nodes.length; n++) hideEl(nodes[n]);
+      }
+
+      // irmãos nativos depois do nosso form
+      var form = document.getElementById(FORM_ID);
+      if (form && form.parentElement) {
+        var sib = form.nextElementSibling;
+        while (sib) {
+          if (sib.id !== FORM_ID && !sib.classList.contains('ch7f')) hideEl(sib);
+          sib = sib.nextElementSibling;
+        }
+      }
+
+      var btns = root.querySelectorAll('button, .q-btn, [role="button"]');
+      for (var i = 0; i < btns.length; i++) {
+        var b = btns[i];
+        if (b.id === 'ch7f-submit' || b.classList.contains('ch7-submit')) continue;
+        if (b.closest('#' + FORM_ID)) continue;
+        if (b.closest('.title-section, .tabs, .q-tabs')) continue;
+        var t = (b.textContent || '').replace(/\s+/g, ' ').trim();
+        var isSubmitLike =
+          /^Registrar(-se)?$/i.test(t) ||
+          /^Cadastrar(-se)?$/i.test(t) ||
+          /^Register$/i.test(t) ||
+          /^Login$|^Entrar$/i.test(t) ||
+          b.closest('.submit-section');
+        if (isSubmitLike) {
+          hideEl(b);
+          try {
+            b.disabled = true;
+          } catch (e1) {}
+        }
+      }
+    } catch (e) {}
   }
 
   function unmountRegisterForm() {
@@ -660,6 +885,7 @@
         existing.remove();
       } catch (e) {}
     }
+    cleanupOrphanForm();
   }
 
   function findLoginIdentityInput(root) {
@@ -734,13 +960,14 @@
       if (n.id === LOGIN_ERR_ID || n.closest('#' + FORM_ID)) continue;
       var t = (n.textContent || '').trim();
       if (!t) continue;
-      // se mensagem fala de telefone mas valor é e-mail → corrige
       var idInput = findLoginIdentityInput(root);
       var val = idInput ? String(idInput.value || '') : '';
       var kind = detectIdentity(val);
       if (/telefone|phone|DDD|n[uú]mero/i.test(t) && kind === 'email') {
         var fixed = validateIdentity(val);
-        n.textContent = fixed === true ? '' : fixed === MSG.emptyId ? MSG.email : fixed;
+        var next = fixed === true ? '' : fixed === MSG.emptyId ? MSG.email : fixed;
+        // só escreve se mudou — evita loop com MutationObserver
+        if (t !== next) n.textContent = next;
       }
     }
   }
@@ -851,25 +1078,38 @@
       );
     }
 
-    // observer para mensagens Quasar
-    if (!root.__ch7LoginMoV9) {
-      root.__ch7LoginMoV9 = 1;
+    // observer leve para mensagens Quasar (sem characterData = menos loop)
+    if (!root.__ch7LoginMoV12) {
+      root.__ch7LoginMoV12 = 1;
+      var moT = null;
       var mo = new MutationObserver(function () {
-        rewriteQuasarPhoneErrors(root);
+        if (moT) return;
+        moT = setTimeout(function () {
+          moT = null;
+          rewriteQuasarPhoneErrors(root);
+        }, 120);
       });
-      mo.observe(root, { childList: true, subtree: true, characterData: true });
+      mo.observe(root, { childList: true, subtree: true });
     }
   }
 
   function sync() {
+    cleanupOrphanForm();
     var root = dialogRoot();
     if (!root) {
-      unmountRegisterForm();
+      // sem login dialog: só limpa form órfão, NÃO toca em lottery
+      var orphan = document.getElementById(FORM_ID);
+      if (orphan) {
+        try {
+          orphan.remove();
+        } catch (e) {}
+      }
       return;
     }
     var mode = modeFromUi(root);
     if (mode === 'register') {
       mountRegisterForm();
+      hideNativeRegisterButtons(root);
     } else {
       unmountRegisterForm();
       adaptLogin();
@@ -886,66 +1126,232 @@
   }
   ensureCrypto();
 
+  /** Pinia game store — fila de dialogs (só 1 ativo por vez) */
+  function getGameStore() {
+    try {
+      var app = document.querySelector('#q-app');
+      var vue = app && app.__vue_app__;
+      var pinia = vue && vue.config && vue.config.globalProperties && vue.config.globalProperties.$pinia;
+      if (!pinia || !pinia._s) return null;
+      return pinia._s.get('game') || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Promo loginDialog para o topo da fila do gameStore.
+   * Sem isso, registrationReward/winning ficam na frente e o cadastro nunca abre.
+   */
+  function promoteLoginDialog(loginType) {
+    try {
+      var game = getGameStore();
+      if (!game) return false;
+      if (loginType === 1 || loginType === 2) {
+        if (typeof game.setLoginType === 'function') game.setLoginType(loginType);
+        else game.loginType = loginType;
+      }
+      var list = game.loadingList;
+      if (!list) return false;
+      // remove tudo que não é login da fila (do começo)
+      var guard = 0;
+      while (guard++ < 30 && list.length && list[0] !== 'loginDialog') {
+        var first = list[0];
+        if (typeof game.removeDialog === 'function') {
+          game.removeDialog(first);
+        } else {
+          try {
+            if (game.loading) game.loading[first] = false;
+          } catch (e1) {}
+          list.shift();
+        }
+      }
+      // se login não está na fila, adiciona
+      var hasLogin = false;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i] === 'loginDialog') {
+          hasLogin = true;
+          break;
+        }
+      }
+      if (!hasLogin) {
+        if (typeof game.addDialog === 'function') game.addDialog('loginDialog');
+        else {
+          list.push('loginDialog');
+          if (game.loading) {
+            Object.keys(game.loading).forEach(function (k) {
+              game.loading[k] = false;
+            });
+            game.loading.loginDialog = true;
+          }
+        }
+      } else if (list[0] === 'loginDialog' && game.loading) {
+        Object.keys(game.loading).forEach(function (k) {
+          game.loading[k] = false;
+        });
+        game.loading.loginDialog = true;
+      }
+      // se login ficou no meio, reordena
+      if (list[0] !== 'loginDialog') {
+        var next = [];
+        next.push('loginDialog');
+        for (var j = 0; j < list.length; j++) {
+          if (list[j] !== 'loginDialog') next.push(list[j]);
+        }
+        // mutate in place for reactivity
+        list.splice(0, list.length);
+        for (var k = 0; k < next.length; k++) list.push(next[k]);
+        if (game.loading) {
+          Object.keys(game.loading).forEach(function (key) {
+            game.loading[key] = false;
+          });
+          game.loading.loginDialog = true;
+        }
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** Fecha popups visuais de lottery/atividade (backup do promoteLoginDialog) */
+  function dismissBlockingPopups() {
+    try {
+      var dialogs = document.querySelectorAll('.q-dialog');
+      for (var i = 0; i < dialogs.length; i++) {
+        var d = dialogs[i];
+        if (isLoginDialogEl(d)) continue;
+        if (!d.querySelector('.slotBox, .lotteryBg, .rotary-table, .bottomBoxTitle')) continue;
+        var closeBtn = null;
+        var candidates = d.querySelectorAll('button.q-btn, .q-btn');
+        for (var c = 0; c < candidates.length; c++) {
+          var btn = candidates[c];
+          var tx = (btn.textContent || '').replace(/\s+/g, ' ').trim();
+          var r = btn.getBoundingClientRect();
+          if (tx === '×' || tx === 'x' || tx === 'X') {
+            closeBtn = btn;
+            break;
+          }
+          if ((!tx || tx.length <= 1) && r.top < 90 && r.width <= 56 && r.height <= 56) {
+            closeBtn = btn;
+            break;
+          }
+        }
+        if (closeBtn) {
+          try {
+            closeBtn.click();
+          } catch (e1) {}
+        }
+      }
+    } catch (e) {}
+  }
+
   document.addEventListener(
     'click',
     function (ev) {
       var el = ev.target;
       if (!el || !el.closest) return;
-      var node = el.closest('button, .q-btn, .tab, .q-tab, span, div, a');
-      if (!node) return;
+      // header Entrar/Registrar ou tabs do dialog
+      var node = el.closest(
+        'button.entrar, button.registrar, .loginRegister button, .login-dialog-container button, .login-dialog button, .tab, .q-tab, .title-section .tab, .tabs .tab',
+      );
+      if (!node) {
+        // fallback texto curto (evita capturar textos longos da lottery)
+        node = el.closest('button, .q-btn, .tab, .q-tab');
+        if (!node) return;
+        var raw = (node.textContent || '').replace(/\s+/g, ' ').trim();
+        if (raw.length > 24) return;
+      }
       var t = (node.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/^(Login|Entrar)$/i.test(t)) {
+      var isHeaderAuth =
+        (node.classList && (node.classList.contains('entrar') || node.classList.contains('registrar'))) ||
+        !!(node.closest && node.closest('.loginRegister'));
+      if (/^(Login|Entrar)$/i.test(t) || (node.classList && node.classList.contains('entrar'))) {
         lastMode = 'login';
-        setTimeout(sync, 50);
-        setTimeout(sync, 200);
+        if (isHeaderAuth) {
+          // SPA addDialog enfileira atrás de reward/winning — promove login
+          setTimeout(function () {
+            promoteLoginDialog(1);
+            dismissBlockingPopups();
+          }, 30);
+          setTimeout(function () {
+            promoteLoginDialog(1);
+          }, 200);
+          setTimeout(function () {
+            promoteLoginDialog(1);
+          }, 500);
+        }
+        [100, 300, 700, 1400, 2200].forEach(function (ms) {
+          setTimeout(schedule, ms);
+        });
+        return;
       }
-      if (/^(Registrar(-se)?|Cadastro|Register|Cadastrar)$/i.test(t)) {
+      if (
+        /^(Registrar(-se)?|Cadastro|Register|Cadastrar)$/i.test(t) ||
+        (node.classList && node.classList.contains('registrar'))
+      ) {
         lastMode = 'register';
-        setTimeout(sync, 50);
-        setTimeout(sync, 150);
-        setTimeout(sync, 400);
-      }
-      if (/Entrar|Login|Registrar|Cadastr/i.test(t)) {
-        setTimeout(sync, 100);
-        setTimeout(sync, 350);
+        if (isHeaderAuth) {
+          setTimeout(function () {
+            promoteLoginDialog(2);
+            dismissBlockingPopups();
+          }, 30);
+          setTimeout(function () {
+            promoteLoginDialog(2);
+          }, 200);
+          setTimeout(function () {
+            promoteLoginDialog(2);
+          }, 500);
+        }
+        [100, 300, 700, 1400, 2200].forEach(function (ms) {
+          setTimeout(schedule, ms);
+        });
       }
     },
     true,
   );
 
   var tmr = null;
+  var __ch7RegBusy = false;
   function schedule() {
+    // sem MO global no document — evita loop com Vue re-render
+    if (__ch7RegBusy) return;
     clearTimeout(tmr);
-    tmr = setTimeout(sync, 80);
+    tmr = setTimeout(function () {
+      __ch7RegBusy = true;
+      try {
+        sync();
+      } finally {
+        setTimeout(function () {
+          __ch7RegBusy = false;
+        }, 250);
+      }
+    }, 80);
   }
 
+  // limpa form órfão do v11 (montado na lottery)
+  cleanupOrphanForm();
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', schedule);
+    document.addEventListener('DOMContentLoaded', function () {
+      cleanupOrphanForm();
+      schedule();
+    });
   } else {
     schedule();
   }
   window.addEventListener('hashchange', schedule);
-  setTimeout(schedule, 300);
+  // boot curto: só tenta se login dialog existir
   setTimeout(schedule, 800);
-  setTimeout(schedule, 1600);
-  setInterval(function () {
-    if (dialogRoot()) sync();
-  }, 1200);
-
-  if (!window.__ch7RegMoV9) {
-    window.__ch7RegMoV9 = 1;
-    var mo = new MutationObserver(function () {
-      if (dialogRoot()) schedule();
-    });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  }
+  setTimeout(schedule, 2000);
 
   window.__ch7RegisterFields = {
     sync: sync,
     detectIdentity: detectIdentity,
     validateIdentity: validateIdentity,
     mode: function () {
-      return lastMode || modeFromUi(dialogRoot());
+      var r = dialogRoot();
+      return lastMode || (r ? modeFromUi(r) : null);
     },
   };
 })();

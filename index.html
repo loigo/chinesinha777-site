@@ -47,11 +47,11 @@
   })();
   </script>
 
-  <!-- ANTES do SPA: reescreve chinesinha777.bet/static â†’ /static (evita timeout offline) -->
-  <script src="/static/asset-origin-fix-launch202607111628.js"></script>
-  <!-- ProduÃ§Ã£o estÃ¡tica: SW off + /gofun â†’ Supabase Edge -->
-  <script src="/static/gofun-edge-bridge-pwd1783800353.js"></script>
-  <script src="/static/register-fields-inject-valv91783802000.js"></script>
+  <!-- ANTES do SPA: reescreve chinesinha777.bet/static → /static (evita timeout offline) -->
+  <script src="/static/asset-origin-fix.js?v=prod20260711b"></script>
+  <!-- Produção estática: SW off + /gofun → Supabase Edge -->
+  <script src="/static/gofun-edge-bridge.js?v=10"></script>
+  <script src="/static/register-fields-inject.js?v=14"></script>
 
 
 <!-- Guard Meta Pixel: 1x fbevents.js + 1 init por pixel ID (anti "conflicting versions") -->
@@ -329,26 +329,25 @@
 
   <script type="module" crossorigin src="/assets/index-Bxx4mSPk.js"
     onerror="window.__ch7MainFail=1"></script>
-  <!-- Brand inject: header + footer (defer: depois do module) -->
-  <script defer src="/static/brand-inject-launch202607111628.js"></script>
-  <script defer src="/static/supabase-boot-launch202607111628.js"></script>
-  <script defer src="/static/register-fields-inject-valv91783802000.js"></script>
-  <script defer src="/static/forgot-password-inject-pwd1783800353.js?v=1"></script>
-
-  <!-- Injects com defer: nÃ£o competem com o mount do Vue no #q-app -->
-  <script defer src="/static/deposit-cpf-inject-launch202607111628.js"></script>
-  <script defer src="/static/deposit-pix-inject-pixerr1783802500.js"></script>
-  <script defer src="/static/win-popup-pt-inject-winpt2v1783805000.js"></script>
-
-  <script defer src="/static/deposit-bonus-inject-fixmrgrug5u.js"></script>
-<script defer src="/static/checkin-treasure-inject-launch202607111628.js"></script>
-  <script defer src="/static/pass-dialog-close-launch202607111628.js"></script>
-  <script defer src="/static/invite-shop-inject-launch202607111628.js"></script>
-  <script defer src="/static/tracking-attribution-launch202607111628.js"></script>
-  <script defer src="/static/game-iframe-fix-winpt2v1783805000.js"></script>
+  <!-- Essenciais na home (anti-loop). Resto sob demanda por rota. -->
+  <script defer src="/static/brand-inject.js?v=ch7-26"></script>
+  <script defer src="/static/supabase-boot.js?v=1"></script>
+  <script defer src="/static/register-fields-inject.js?v=14"></script>
+  <script defer src="/static/forgot-password-inject.js?v=2"></script>
+  <script defer src="/static/win-popup-pt-inject.js?v=winpt2"></script>
+  <script defer src="/static/tracking-attribution.js?v=1"></script>
+  <script defer src="/static/invite-shop-inject.js?v=1"></script>
 
   <script>
-    function ch7Load(src){var s=document.createElement('script');s.src=src;s.defer=true;document.body.appendChild(s);}
+    function ch7Load(src){
+      try{
+        var key=String(src).split('?')[0];
+        if(document.querySelector('script[src*="'+key.split('/').pop()+'"]')) return;
+        var s=document.createElement('script');
+        s.src=src; s.defer=true;
+        document.body.appendChild(s);
+      }catch(e){}
+    }
     function ch7BootHide(){
       var b=document.getElementById('ch7-boot');
       if(b){ b.classList.add('hid'); setTimeout(function(){try{b.remove()}catch(e){}},320); }
@@ -358,24 +357,68 @@
       var f=document.getElementById('ch7-fail');
       if(f) f.classList.add('show');
     }
-    var _mo=new MutationObserver(function(){
-      var app=document.getElementById('q-app');
-      if(app && app.children && app.children.length){ ch7BootHide(); _mo.disconnect(); }
+    // Lazy: só carrega injects pesados na rota certa (para o loop na home)
+    function ch7RouteInjects(){
+      var h=String(location.hash||'');
+      if(/recharge/i.test(h)){
+        ch7Load('/static/deposit-pix-inject.js?v=12');
+        ch7Load('/static/deposit-cpf-inject.js?v=2');
+      }
+      if(/iframe|fishing|collect/i.test(h)){
+        ch7Load('/static/game-iframe-fix.js?v=winpt2');
+      }
+      if(/signIn|pass|activit/i.test(h)){
+        ch7Load('/static/checkin-treasure-inject.js?v=3');
+        ch7Load('/static/pass-dialog-close.js?v=4');
+      }
+    }
+    function ch7DismissJunkWin(){
+      try{
+        document.querySelectorAll('.q-dialog').forEach(function(d){
+          var t=(d.innerText||'').replace(/\s+/g,' ');
+          if(!/CONGRATS|YOU.?VE\s+WON|RESPIN|PARAB[EÉ]NS|VOC[EÊ]\s+GANHOU/i.test(t)) return;
+          var zero=/R\$\s*0([.,]0+)?\b/.test(t);
+          var onGame=/iframe|fishing|collect/i.test(location.hash||'');
+          if(!zero && onGame) return;
+          if(!zero && !/vip|recharge|activities|signIn|mine|mypage|personal/i.test(location.hash||'')) return;
+          var btn=d.querySelector('.cloneImg, .close, button, .q-btn, [aria-label="Close"]');
+          if(btn){ try{btn.click();}catch(e){} }
+        });
+      }catch(e){}
+    }
+    window.addEventListener('hashchange', function(){
+      ch7RouteInjects();
+      setTimeout(ch7DismissJunkWin, 200);
+      setTimeout(ch7DismissJunkWin, 800);
     });
-    _mo.observe(document.documentElement,{childList:true,subtree:true});
-    // se SPA montar, esconde boot; se falhar, mostra botÃ£o recarregar
-    setTimeout(function(){
+    setTimeout(ch7DismissJunkWin, 2500);
+    var _bootDone=0;
+    function ch7OnMount(){
+      if(_bootDone) return;
       var app=document.getElementById('q-app');
-      if(app && app.children && app.children.length){ ch7BootHide(); return; }
-      if(window.__ch7MainFail){ ch7ShowFail(); return; }
-      // dÃ¡ mais tempo em 3G / cold start
-      setTimeout(function(){
-        var a=document.getElementById('q-app');
-        if(a && a.children && a.children.length){ ch7BootHide(); return; }
+      if(app && app.children && app.children.length){
+        _bootDone=1;
         ch7BootHide();
-        if(!a || !a.children || !a.children.length) ch7ShowFail();
-      }, 4000);
-    }, 5000);
+        try{
+          var fail=document.getElementById('ch7-fail');
+          if(fail){ fail.classList.remove('show'); fail.style.display='none'; }
+        }catch(e){}
+        setTimeout(ch7RouteInjects, 300);
+        try{ if(_mo) _mo.disconnect(); }catch(e){}
+      }
+    }
+    var _mo=null;
+    try{
+      _mo=new MutationObserver(ch7OnMount);
+      _mo.observe(document.documentElement,{childList:true,subtree:true});
+    }catch(e){}
+    setTimeout(function(){
+      ch7OnMount();
+      if(!_bootDone){
+        if(window.__ch7MainFail) ch7ShowFail();
+        else setTimeout(function(){ if(!_bootDone){ ch7OnMount(); if(!_bootDone) ch7ShowFail(); } }, 6000);
+      }
+    }, 2500);
 
     document.getElementById('ch7-fail-btn')&&document.getElementById('ch7-fail-btn').addEventListener('click',function(){
       try{
@@ -391,13 +434,13 @@
 
     if('requestIdleCallback' in window){
       requestIdleCallback(function(){
-        ch7Load('/static/activity-desc-close-launch202607111628.js');
-        ch7Load('/static/perf-boost-launch202607111628.js');
+        ch7Load('/static/activity-desc-close.js?v=1');
+        ch7Load('/static/perf-boost.js?v=1');
       },{timeout:2500});
     } else {
       setTimeout(function(){
-        ch7Load('/static/activity-desc-close-launch202607111628.js');
-        ch7Load('/static/perf-boost-launch202607111628.js');
+        ch7Load('/static/activity-desc-close.js?v=1');
+        ch7Load('/static/perf-boost.js?v=1');
       }, 800);
     }
   </script>

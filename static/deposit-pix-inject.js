@@ -4,7 +4,8 @@
  */
 (function () {
   'use strict';
-  if (window.__ch7DepositPixInitV9) return;
+  if (window.__ch7DepositPixInitV10) return;
+  window.__ch7DepositPixInitV10 = 1;
   window.__ch7DepositPixInitV9 = 1;
   window.__ch7DepositPixInitV8 = 1;
   window.__ch7DepositPixInit = 1;
@@ -21,14 +22,35 @@
     return /#\/?rechargeIframe\b/i.test(String(location.hash || ''));
   }
 
+  function isLocalHost() {
+    try {
+      var h = String(location.hostname || '');
+      return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+    } catch (e) {
+      return false;
+    }
+  }
+
   function normalizePixUrl(u) {
     var s = String(u || '').trim();
     if (!s) return '';
-    // local Node usava /pix-pay — em GH Pages precisa .html
-    s = s.replace(/\/pix-pay(\?|#|$)/i, '/pix-pay.html$1');
-    s = s.replace(/pix-pay\?/i, function (m) {
-      return m.indexOf('.html') >= 0 ? m : 'pix-pay.html?';
-    });
+    // NUNCA abrir PIX no domínio original rioslots — reescreve p/ same-origin
+    s = s
+      .replace(/https?:\/\/(www\.)?rioslots777\.com/gi, location.origin)
+      .replace(/https?:\/\/game\.rioslots777\.com/gi, location.origin);
+    // em local, se API devolveu chinesinha777.bet/pix-pay → usa origin local
+    if (isLocalHost()) {
+      s = s.replace(/https?:\/\/(www\.)?chinesinha777\.bet(?::\d+)?/gi, location.origin);
+    }
+    // GH Pages precisa .html; Node local serve /pix-pay
+    if (!isLocalHost()) {
+      s = s.replace(/\/pix-pay(\?|#|$)/i, '/pix-pay.html$1');
+      s = s.replace(/pix-pay\?/i, function (m) {
+        return m.indexOf('.html') >= 0 ? m : 'pix-pay.html?';
+      });
+    } else {
+      s = s.replace(/\/pix-pay\.html(\?|#|$)/i, '/pix-pay$1');
+    }
     if (/^https?:\/\//i.test(s)) return s;
     if (s.charAt(0) === '/') return location.origin + s;
     if (/pix-pay/i.test(s)) return location.origin + '/' + s.replace(/^\//, '');
@@ -271,6 +293,10 @@
     }
   }
 
+  var __ch7LastPixUrl = '';
+  var __ch7LastOrderId = '';
+  var __ch7SettingUrl = false;
+
   function patchSetRechargeUrl() {
     getPiniaStores().forEach(function (store) {
       try {
@@ -279,16 +305,33 @@
         store.__ch7PixUrlPatch = 1;
         var orig = store.setRechargeUrl.bind(store);
         store.setRechargeUrl = function (url) {
+          // evita reentrada / loop setRechargeUrl ↔ fixRechargeIframe
+          if (__ch7SettingUrl) return orig(url);
           var fixed = normalizePixUrl(url);
           if (fixed) {
-            savePix(fixed, '');
-            setTimeout(function () {
-              if (isRechargeIframe() || /rechargeIframe/i.test(location.hash)) {
-                ensureIframe(fixed);
-              }
+            if (fixed === __ch7LastPixUrl && isRechargeIframe()) {
+              // já aplicado — só esconde loading, sem re-setar store/iframe
               hideSpaLoading();
-            }, 30);
-            setTimeout(hideSpaLoading, 400);
+              return;
+            }
+            __ch7LastPixUrl = fixed;
+            savePix(fixed, __ch7LastOrderId || '');
+            __ch7SettingUrl = true;
+            try {
+              var ret = orig(fixed);
+              setTimeout(function () {
+                if (isRechargeIframe() || /rechargeIframe/i.test(location.hash)) {
+                  ensureIframe(fixed);
+                }
+                hideSpaLoading();
+                __ch7SettingUrl = false;
+              }, 30);
+              setTimeout(hideSpaLoading, 400);
+              return ret;
+            } catch (e) {
+              __ch7SettingUrl = false;
+              throw e;
+            }
           }
           return orig(fixed || url);
         };
@@ -323,33 +366,40 @@
 
     ensureStyle();
     hideSpaLoading();
-    patchSetRechargeUrl();
+    // NÃO chamar patchSetRechargeUrl em loop — só no boot
 
     var iframe = findRechargeIframe();
     var src = iframe ? iframe.getAttribute('src') || '' : '';
+    // já tem pix-pay carregado e estável
+    if (/pix-pay/i.test(src) && normalizePixUrl(src) === __ch7LastPixUrl) {
+      hideFallback();
+      return;
+    }
     if (/pix-pay/i.test(src)) {
+      __ch7LastPixUrl = normalizePixUrl(src) || src;
       ensureIframe(src);
+      hideFallback();
       return;
     }
 
     var storeUrl = readStoreRechargeUrl();
     if (storeUrl) {
-      savePix(storeUrl, '');
+      if (storeUrl !== __ch7LastPixUrl) {
+        __ch7LastPixUrl = storeUrl;
+        savePix(storeUrl, __ch7LastOrderId || '');
+      }
       ensureIframe(storeUrl);
+      hideFallback();
       return;
     }
 
     var saved = loadPix();
     if (saved && saved.url) {
-      // re-injeta na store para o MainLayout também pegar
-      try {
-        getPiniaStores().forEach(function (store) {
-          if (typeof store.setRechargeUrl === 'function') {
-            store.setRechargeUrl(saved.url);
-          }
-        });
-      } catch (e) {}
+      // NÃO chamar setRechargeUrl aqui (causava loop com o patch)
+      __ch7LastPixUrl = saved.url;
+      if (saved.orderId) __ch7LastOrderId = saved.orderId;
       ensureIframe(saved.url);
+      hideFallback();
       return;
     }
 
@@ -358,7 +408,9 @@
       var oid = localStorage.getItem(KEY_ORDER) || '';
       if (oid) {
         var rebuild = location.origin + '/pix-pay.html?order=' + encodeURIComponent(oid);
+        __ch7LastOrderId = oid;
         ensureIframe(rebuild);
+        hideFallback();
         return;
       }
     } catch (e) {}
@@ -584,17 +636,30 @@
   function onShopOrderHit(pay, oid) {
     if (!pay) return;
     var fixed = normalizePixUrl(pay);
-    savePix(fixed, oid);
+    // dedupe: mesmo order/url já processado
+    if (oid && oid === __ch7LastOrderId && fixed === __ch7LastPixUrl) {
+      hideSpaLoading();
+      if (isRechargeIframe()) ensureIframe(fixed);
+      return;
+    }
+    if (oid) __ch7LastOrderId = String(oid);
+    __ch7LastPixUrl = fixed;
+    savePix(fixed, oid || '');
     hideSpaLoading();
+    // SPA já chama setRechargeUrl + push rechargeIframe no sucesso.
+    // Só reforça se ainda não navegaram / store vazia.
     try {
-      getPiniaStores().forEach(function (store) {
-        if (typeof store.setRechargeUrl === 'function') store.setRechargeUrl(fixed);
-      });
+      var cur = readStoreRechargeUrl();
+      if (!cur || cur !== fixed) {
+        getPiniaStores().forEach(function (store) {
+          if (typeof store.setRechargeUrl === 'function') store.setRechargeUrl(fixed);
+        });
+      }
     } catch (e) {}
     setTimeout(function () {
       if (isRechargeIframe()) ensureIframe(fixed);
       hideSpaLoading();
-    }, 40);
+    }, 80);
     setTimeout(function () {
       if (isRechargeIframe()) ensureIframe(fixed);
       hideSpaLoading();
@@ -650,7 +715,7 @@
     };
   }
 
-  // loading killer while on rechargeIframe
+  // loading killer while on rechargeIframe (sem re-setar store)
   var killTimer = null;
   function armLoadingKiller() {
     if (killTimer) clearInterval(killTimer);
@@ -659,29 +724,38 @@
     killTimer = setInterval(function () {
       n++;
       hideSpaLoading();
-      patchSetRechargeUrl();
-      if (n === 1 || n === 4 || n === 10) fixRechargeIframe(false);
-      if (!isRechargeIframe() || n > 40) {
+      // só tenta fix 2x no início — evita loop
+      if (n === 1 || n === 5) fixRechargeIframe(false);
+      if (!isRechargeIframe() || n > 20) {
         clearInterval(killTimer);
         killTimer = null;
       }
-    }, 400);
+    }, 500);
   }
 
   var t = null;
+  var __ch7SchedBusy = false;
   function schedule() {
-    patchSetRechargeUrl();
-    if (!isRechargeIframe()) {
-      try {
-        document.body.classList.remove('ch7-recharge-iframe');
-      } catch (e) {}
-      return;
+    if (__ch7SchedBusy) return;
+    __ch7SchedBusy = true;
+    try {
+      patchSetRechargeUrl();
+      if (!isRechargeIframe()) {
+        try {
+          document.body.classList.remove('ch7-recharge-iframe');
+        } catch (e) {}
+        return;
+      }
+      armLoadingKiller();
+      clearTimeout(t);
+      t = setTimeout(function () {
+        fixRechargeIframe(false);
+      }, 150);
+    } finally {
+      setTimeout(function () {
+        __ch7SchedBusy = false;
+      }, 100);
     }
-    armLoadingKiller();
-    clearTimeout(t);
-    t = setTimeout(function () {
-      fixRechargeIframe(false);
-    }, 120);
   }
 
   // success overlay (postMessage from pix-pay)
@@ -735,6 +809,8 @@
     } catch (e) {}
   });
 
+  // SEM MutationObserver no document inteiro — causava loop
+  // (ensureIframe/hideSpaLoading mutam DOM → schedule → de novo).
   window.addEventListener('hashchange', schedule);
   window.addEventListener('popstate', schedule);
   if (document.readyState === 'loading') {
@@ -742,20 +818,15 @@
   } else {
     schedule();
   }
-  setTimeout(schedule, 200);
-  setTimeout(schedule, 800);
-  setTimeout(schedule, 2000);
-  setTimeout(patchSetRechargeUrl, 1000);
-  setTimeout(patchSetRechargeUrl, 3000);
-
-  if (typeof MutationObserver !== 'undefined' && !window.__ch7PixMoV8) {
-    window.__ch7PixMoV8 = 1;
-    var mo = new MutationObserver(function () {
-      if (!isRechargeIframe()) return;
-      schedule();
-    });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  }
+  // boot limitado (não em loop)
+  setTimeout(function () {
+    patchSetRechargeUrl();
+    if (isRechargeIframe()) fixRechargeIframe(false);
+  }, 300);
+  setTimeout(function () {
+    patchSetRechargeUrl();
+    if (isRechargeIframe()) fixRechargeIframe(false);
+  }, 1200);
 
   window.__ch7Pix = {
     fix: function () {

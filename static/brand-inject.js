@@ -5,7 +5,9 @@
  */
 (function () {
   'use strict';
-  if (window.__CH7_BRAND_INIT__) return;
+  if (window.__CH7_BRAND_INIT_V26__) return;
+  window.__CH7_BRAND_INIT_V26__ = 1;
+  window.__CH7_BRAND_INIT_V25__ = 1;
   window.__CH7_BRAND_INIT__ = 1;
 
   var V = 'ch7-22';
@@ -183,29 +185,64 @@
     });
   }
 
+  /** Logos do CDN rioslots (okx007/res/rioslots777/logo/*) → brand local */
+  function rewriteRioslotsLogoUrl(v) {
+    var s = String(v || '');
+    if (!s) return s;
+    // domínio original — nunca carregar no player
+    if (/rioslots777\.com/i.test(s) && /logo/i.test(s)) return LOGO;
+    // path de logo no CDN do tema original
+    if (/okx007\.com\/res\/rioslots777\/logo\//i.test(s)) {
+      if (/logo1|logo-horizontal|logo\.png/i.test(s)) return LOGO;
+      if (/logo-footer|footer/i.test(s)) return LOGO_FOOTER;
+      return LOGO;
+    }
+    if (/okx007\.com\/res\/[^/]+\/logo\/logo1/i.test(s)) return LOGO;
+    return s;
+  }
+
   /** Reescreve https://chinesinha777.bet/static/... → /static/... (anti timeout quando prod offline) */
   function fixSelfHostAssetUrls(root) {
     try {
       var base = root || document;
       var re = /^https?:\/\/(www\.)?chinesinha777\.bet(?::\d+)?(\/static\/)/i;
       base.querySelectorAll &&
-        base.querySelectorAll('img[src], source[src], video[src], image[href]').forEach(function (el) {
-          var attr = el.hasAttribute('href') ? 'href' : 'src';
+        base.querySelectorAll('img[src], source[src], video[src], image[href], a[href]').forEach(function (el) {
+          var attr = el.hasAttribute('href') && el.tagName === 'A' ? 'href' : el.hasAttribute('href') && !el.hasAttribute('src') ? 'href' : 'src';
+          if (el.tagName === 'A') attr = 'href';
+          else if (el.hasAttribute('src')) attr = 'src';
+          else if (el.hasAttribute('href')) attr = 'href';
+          else return;
           var v = el.getAttribute(attr) || '';
+          // bloqueia navegação pro domínio original
+          if (attr === 'href' && /rioslots777\.com/i.test(v)) {
+            try {
+              var u = new URL(v, location.href);
+              el.setAttribute('href', location.origin + (u.hash || '/#/'));
+            } catch (e1) {
+              el.setAttribute('href', location.origin + '/#/');
+            }
+            return;
+          }
+          var logoFixed = rewriteRioslotsLogoUrl(v);
+          if (logoFixed !== v) {
+            el.setAttribute(attr, logoFixed);
+            return;
+          }
           if (re.test(v)) {
             el.setAttribute(attr, v.replace(re, '$2'));
           }
         });
       // CSS backgrounds inline raros
       base.querySelectorAll &&
-        base.querySelectorAll('[style*="chinesinha777.bet"]').forEach(function (el) {
+        base.querySelectorAll('[style*="chinesinha777.bet"], [style*="rioslots777"]').forEach(function (el) {
           var s = el.getAttribute('style') || '';
-          if (s.indexOf('chinesinha777.bet') >= 0) {
-            el.setAttribute(
-              'style',
-              s.replace(/https?:\/\/(www\.)?chinesinha777\.bet(?::\d+)?(\/static\/)/gi, '$2'),
-            );
-          }
+          s = s.replace(/https?:\/\/(www\.)?chinesinha777\.bet(?::\d+)?(\/static\/)/gi, '$2');
+          s = s.replace(
+            /https?:\/\/(www\.)?okx007\.com\/res\/rioslots777\/logo\/[^)'"\s]+/gi,
+            LOGO,
+          );
+          el.setAttribute('style', s);
         });
     } catch (e) {}
   }
@@ -234,27 +271,11 @@
 
   runAll();
 
-  // Apenas childList (SPA troca header) — NUNCA attributes (loop infinito)
-  try {
-    var mo = new MutationObserver(function () {
-      if (applying) return;
-      schedule(250);
-    });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  } catch (e) {}
-
-  [80, 300, 900, 2000].forEach(function (ms) {
+  // SEM MutationObserver global (causava loop com Vue re-render)
+  // Só boot pontual + resize
+  [100, 500, 1500, 4000].forEach(function (ms) {
     setTimeout(runAll, ms);
   });
-
-  // Fallback raro se Vue recriar logo sem disparar childList útil
-  setInterval(function () {
-    try {
-      var hc = document.querySelector('.header-content');
-      if (!hc) return;
-      if (!hc.querySelector('img[data-ch7-logo="1"]')) schedule(0);
-    } catch (e) {}
-  }, 8000);
 
   var resizeT = null;
   window.addEventListener(

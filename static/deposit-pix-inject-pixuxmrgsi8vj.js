@@ -4,7 +4,8 @@
  */
 (function () {
   'use strict';
-  if (window.__ch7DepositPixInitV9) return;
+  if (window.__ch7DepositPixInitV10) return;
+  window.__ch7DepositPixInitV10 = 1;
   window.__ch7DepositPixInitV9 = 1;
   window.__ch7DepositPixInitV8 = 1;
   window.__ch7DepositPixInit = 1;
@@ -21,14 +22,35 @@
     return /#\/?rechargeIframe\b/i.test(String(location.hash || ''));
   }
 
+  function isLocalHost() {
+    try {
+      var h = String(location.hostname || '');
+      return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+    } catch (e) {
+      return false;
+    }
+  }
+
   function normalizePixUrl(u) {
     var s = String(u || '').trim();
     if (!s) return '';
-    // local Node usava /pix-pay — em GH Pages precisa .html
-    s = s.replace(/\/pix-pay(\?|#|$)/i, '/pix-pay.html$1');
-    s = s.replace(/pix-pay\?/i, function (m) {
-      return m.indexOf('.html') >= 0 ? m : 'pix-pay.html?';
-    });
+    // NUNCA abrir PIX no domínio original rioslots — reescreve p/ same-origin
+    s = s
+      .replace(/https?:\/\/(www\.)?rioslots777\.com/gi, location.origin)
+      .replace(/https?:\/\/game\.rioslots777\.com/gi, location.origin);
+    // em local, se API devolveu chinesinha777.bet/pix-pay → usa origin local
+    if (isLocalHost()) {
+      s = s.replace(/https?:\/\/(www\.)?chinesinha777\.bet(?::\d+)?/gi, location.origin);
+    }
+    // GH Pages precisa .html; Node local serve /pix-pay
+    if (!isLocalHost()) {
+      s = s.replace(/\/pix-pay(\?|#|$)/i, '/pix-pay.html$1');
+      s = s.replace(/pix-pay\?/i, function (m) {
+        return m.indexOf('.html') >= 0 ? m : 'pix-pay.html?';
+      });
+    } else {
+      s = s.replace(/\/pix-pay\.html(\?|#|$)/i, '/pix-pay$1');
+    }
     if (/^https?:\/\//i.test(s)) return s;
     if (s.charAt(0) === '/') return location.origin + s;
     if (/pix-pay/i.test(s)) return location.origin + '/' + s.replace(/^\//, '');
@@ -271,6 +293,10 @@
     }
   }
 
+  var __ch7LastPixUrl = '';
+  var __ch7LastOrderId = '';
+  var __ch7SettingUrl = false;
+
   function patchSetRechargeUrl() {
     getPiniaStores().forEach(function (store) {
       try {
@@ -279,16 +305,33 @@
         store.__ch7PixUrlPatch = 1;
         var orig = store.setRechargeUrl.bind(store);
         store.setRechargeUrl = function (url) {
+          // evita reentrada / loop setRechargeUrl ↔ fixRechargeIframe
+          if (__ch7SettingUrl) return orig(url);
           var fixed = normalizePixUrl(url);
           if (fixed) {
-            savePix(fixed, '');
-            setTimeout(function () {
-              if (isRechargeIframe() || /rechargeIframe/i.test(location.hash)) {
-                ensureIframe(fixed);
-              }
+            if (fixed === __ch7LastPixUrl && isRechargeIframe()) {
+              // já aplicado — só esconde loading, sem re-setar store/iframe
               hideSpaLoading();
-            }, 30);
-            setTimeout(hideSpaLoading, 400);
+              return;
+            }
+            __ch7LastPixUrl = fixed;
+            savePix(fixed, __ch7LastOrderId || '');
+            __ch7SettingUrl = true;
+            try {
+              var ret = orig(fixed);
+              setTimeout(function () {
+                if (isRechargeIframe() || /rechargeIframe/i.test(location.hash)) {
+                  ensureIframe(fixed);
+                }
+                hideSpaLoading();
+                __ch7SettingUrl = false;
+              }, 30);
+              setTimeout(hideSpaLoading, 400);
+              return ret;
+            } catch (e) {
+              __ch7SettingUrl = false;
+              throw e;
+            }
           }
           return orig(fixed || url);
         };
@@ -323,33 +366,40 @@
 
     ensureStyle();
     hideSpaLoading();
-    patchSetRechargeUrl();
+    // NÃO chamar patchSetRechargeUrl em loop — só no boot
 
     var iframe = findRechargeIframe();
     var src = iframe ? iframe.getAttribute('src') || '' : '';
+    // já tem pix-pay carregado e estável
+    if (/pix-pay/i.test(src) && normalizePixUrl(src) === __ch7LastPixUrl) {
+      hideFallback();
+      return;
+    }
     if (/pix-pay/i.test(src)) {
+      __ch7LastPixUrl = normalizePixUrl(src) || src;
       ensureIframe(src);
+      hideFallback();
       return;
     }
 
     var storeUrl = readStoreRechargeUrl();
     if (storeUrl) {
-      savePix(storeUrl, '');
+      if (storeUrl !== __ch7LastPixUrl) {
+        __ch7LastPixUrl = storeUrl;
+        savePix(storeUrl, __ch7LastOrderId || '');
+      }
       ensureIframe(storeUrl);
+      hideFallback();
       return;
     }
 
     var saved = loadPix();
     if (saved && saved.url) {
-      // re-injeta na store para o MainLayout também pegar
-      try {
-        getPiniaStores().forEach(function (store) {
-          if (typeof store.setRechargeUrl === 'function') {
-            store.setRechargeUrl(saved.url);
-          }
-        });
-      } catch (e) {}
+      // NÃO chamar setRechargeUrl aqui (causava loop com o patch)
+      __ch7LastPixUrl = saved.url;
+      if (saved.orderId) __ch7LastOrderId = saved.orderId;
       ensureIframe(saved.url);
+      hideFallback();
       return;
     }
 
@@ -358,7 +408,9 @@
       var oid = localStorage.getItem(KEY_ORDER) || '';
       if (oid) {
         var rebuild = location.origin + '/pix-pay.html?order=' + encodeURIComponent(oid);
+        __ch7LastOrderId = oid;
         ensureIframe(rebuild);
+        hideFallback();
         return;
       }
     } catch (e) {}
@@ -434,47 +486,115 @@
   }
 
   var ERR_ID = 'ch7-deposit-error-modal';
-  var HELP =
-    'Faça login novamente e tente o depósito. Se o problema persistir, contate o suporte.';
 
-  function showDepositError(msg) {
+  /**
+   * Modal amigável de falha do PIX.
+   * @param {string} msg  mensagem da API (opcional)
+   * @param {string|number} [code] código do erro (ex. 10001)
+   */
+  function showDepositError(msg, code) {
     hideSpaLoading();
-    var text = String(msg || 'Não foi possível processar o depósito.').trim();
-    if (!/contate o suporte|faça login novamente/i.test(text)) {
-      text = text + ' ' + HELP;
+    var apiMsg = String(msg || '').trim().replace(/</g, '');
+    var errCode =
+      code != null && String(code) !== '' && String(code) !== '0'
+        ? String(code)
+        : '';
+    // extrair código se vier no texto
+    if (!errCode) {
+      var cm = apiMsg.match(/\b(code|código|codigo)[:\s#]*([0-9]{3,5})\b/i);
+      if (cm) errCode = cm[2];
     }
+
     var old = document.getElementById(ERR_ID);
     if (old) old.remove();
     var el = document.createElement('div');
     el.id = ERR_ID;
     el.setAttribute('role', 'alertdialog');
+    el.setAttribute('aria-labelledby', 'ch7-de-title');
     el.style.cssText =
       'position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;' +
       'padding:16px;background:rgba(8,6,4,.88)';
+
+    var codeHtml = errCode
+      ? '<div style="display:inline-block;margin:0 0 14px;padding:6px 12px;border-radius:999px;' +
+        'background:rgba(246,207,135,.12);border:1px solid rgba(246,207,135,.35);' +
+        'font:700 12px/1.2 ui-monospace,Consolas,monospace;color:#f6cf87;letter-spacing:.04em">' +
+        'Código: ' +
+        errCode +
+        '</div>'
+      : '';
+
+    // detalhe técnico curto (sem repetir o bloco amigável inteiro)
+    var detail = '';
+    if (apiMsg) {
+      var short = apiMsg
+        .replace(/\s*Faça login novamente[\s\S]*/i, '')
+        .replace(/\s*Se o problema[\s\S]*/i, '')
+        .trim();
+      if (
+        short &&
+        short.length < 160 &&
+        !/n[aã]o foi poss[ií]vel gerar o pix no momento/i.test(short)
+      ) {
+        detail =
+          '<p style="margin:0 0 14px;font-size:12px;color:rgba(255,255,255,.55);line-height:1.4">' +
+          short +
+          '</p>';
+      }
+    }
+
     el.innerHTML =
-      '<div style="max-width:400px;width:100%;text-align:center;border-radius:18px;padding:22px 18px;' +
-      'background:linear-gradient(165deg,#2c2114,#16120c);border:1px solid rgba(246,207,135,.35);' +
-      'color:#fff;font:500 14px/1.5 system-ui,sans-serif;box-shadow:0 16px 48px rgba(0,0,0,.5)">' +
-      '<div style="font-size:36px;margin-bottom:8px">⚠️</div>' +
-      '<h2 style="margin:0 0 10px;color:#f6cf87;font:800 1.1rem/1.3 system-ui,sans-serif">Não foi possível gerar o PIX</h2>' +
-      '<p style="margin:0 0 12px;color:rgba(255,255,255,.85)">' +
-      text.replace(/</g, '') +
-      '</p>' +
-      '<p style="margin:0 0 16px;font-size:12.5px;color:#aeb7bb;line-height:1.45">' +
-      HELP +
-      '</p>' +
-      '<button type="button" id="ch7-de-login" style="width:100%;padding:13px;border:0;border-radius:12px;' +
-      'font-weight:800;cursor:pointer;background:linear-gradient(180deg,#ffe566,#f0b429);color:#1a1208">Entrar / Fazer login</button>' +
-      '<button type="button" id="ch7-de-close" style="width:100%;margin-top:8px;padding:12px;border:0;border-radius:12px;' +
-      'font-weight:700;cursor:pointer;background:#323749;color:#fff">Fechar</button>' +
+      '<div style="max-width:400px;width:100%;text-align:center;border-radius:18px;padding:24px 20px 18px;' +
+      'background:linear-gradient(165deg,#2c2114 0%,#16120c 100%);border:1px solid rgba(246,207,135,.35);' +
+      'color:#fff;font:500 14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;' +
+      'box-shadow:0 16px 48px rgba(0,0,0,.5)">' +
+      '<div style="font-size:40px;line-height:1;margin-bottom:10px" aria-hidden="true">⚠️</div>' +
+      '<h2 id="ch7-de-title" style="margin:0 0 14px;color:#f6cf87;font:800 1.15rem/1.3 system-ui,sans-serif">' +
+      'Não foi possível gerar o PIX</h2>' +
+      '<div style="text-align:left;margin:0 0 12px;padding:12px 14px;border-radius:12px;' +
+      'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">' +
+      '<p style="margin:0 0 8px;color:rgba(255,255,255,.9);font-size:13.5px;line-height:1.5">' +
+      'Não foi possível gerar o PIX no momento.</p>' +
+      '<p style="margin:0 0 8px;color:rgba(255,255,255,.82);font-size:13.5px;line-height:1.5">' +
+      'Sua sessão pode ter expirado.</p>' +
+      '<p style="margin:0 0 8px;color:rgba(255,255,255,.82);font-size:13.5px;line-height:1.5">' +
+      'Faça login novamente e tente o depósito.</p>' +
+      '<p style="margin:0;color:rgba(255,255,255,.75);font-size:13px;line-height:1.5">' +
+      'Se o problema continuar, contate o suporte com o código do erro.</p>' +
+      '</div>' +
+      codeHtml +
+      detail +
+      '<button type="button" id="ch7-de-retry" style="width:100%;padding:14px;border:0;border-radius:12px;' +
+      'font:800 15px/1.2 system-ui,sans-serif;cursor:pointer;' +
+      'background:linear-gradient(180deg,#ffe566 0%,#f0b429 55%,#d4920a 100%);color:#1a1208;' +
+      'box-shadow:0 6px 18px rgba(240,180,41,.28)">Tentar novamente</button>' +
+      '<button type="button" id="ch7-de-login" style="width:100%;margin-top:8px;padding:13px;border:0;border-radius:12px;' +
+      'font:700 14px/1.2 system-ui,sans-serif;cursor:pointer;background:#323749;color:#fff">' +
+      'Ir para Login</button>' +
+      '<button type="button" id="ch7-de-close" style="width:100%;margin-top:6px;padding:11px;border:0;border-radius:12px;' +
+      'font:600 13px/1.2 system-ui,sans-serif;cursor:pointer;background:transparent;' +
+      'color:rgba(255,255,255,.55)">Fechar</button>' +
       '</div>';
     document.body.appendChild(el);
+
+    function closeModal() {
+      try {
+        el.remove();
+      } catch (e) {}
+    }
+
+    var bRetry = document.getElementById('ch7-de-retry');
+    if (bRetry)
+      bRetry.onclick = function () {
+        closeModal();
+        // volta para depósito para tentar de novo
+        location.hash = '#/recharge';
+      };
+
     var b1 = document.getElementById('ch7-de-login');
     if (b1)
       b1.onclick = function () {
-        try {
-          el.remove();
-        } catch (e) {}
+        closeModal();
         location.hash = '#/';
         setTimeout(function () {
           try {
@@ -489,13 +609,13 @@
           } catch (e2) {}
         }, 350);
       };
+
     var b2 = document.getElementById('ch7-de-close');
-    if (b2)
-      b2.onclick = function () {
-        try {
-          el.remove();
-        } catch (e) {}
-      };
+    if (b2) b2.onclick = closeModal;
+
+    el.addEventListener('click', function (ev) {
+      if (ev.target === el) closeModal();
+    });
   }
 
   function handleShopOrderResponse(text) {
@@ -506,24 +626,40 @@
     }
     var j = parseShopOrderPayload(text);
     if (j && typeof j === 'object' && j.code != null && Number(j.code) !== 0) {
-      showDepositError(j.msg || j.message || 'Erro ao processar o depósito.');
+      showDepositError(
+        j.msg || j.message || 'Erro ao processar o depósito.',
+        j.code,
+      );
     }
   }
 
   function onShopOrderHit(pay, oid) {
     if (!pay) return;
     var fixed = normalizePixUrl(pay);
-    savePix(fixed, oid);
+    // dedupe: mesmo order/url já processado
+    if (oid && oid === __ch7LastOrderId && fixed === __ch7LastPixUrl) {
+      hideSpaLoading();
+      if (isRechargeIframe()) ensureIframe(fixed);
+      return;
+    }
+    if (oid) __ch7LastOrderId = String(oid);
+    __ch7LastPixUrl = fixed;
+    savePix(fixed, oid || '');
     hideSpaLoading();
+    // SPA já chama setRechargeUrl + push rechargeIframe no sucesso.
+    // Só reforça se ainda não navegaram / store vazia.
     try {
-      getPiniaStores().forEach(function (store) {
-        if (typeof store.setRechargeUrl === 'function') store.setRechargeUrl(fixed);
-      });
+      var cur = readStoreRechargeUrl();
+      if (!cur || cur !== fixed) {
+        getPiniaStores().forEach(function (store) {
+          if (typeof store.setRechargeUrl === 'function') store.setRechargeUrl(fixed);
+        });
+      }
     } catch (e) {}
     setTimeout(function () {
       if (isRechargeIframe()) ensureIframe(fixed);
       hideSpaLoading();
-    }, 40);
+    }, 80);
     setTimeout(function () {
       if (isRechargeIframe()) ensureIframe(fixed);
       hideSpaLoading();
@@ -579,7 +715,7 @@
     };
   }
 
-  // loading killer while on rechargeIframe
+  // loading killer while on rechargeIframe (sem re-setar store)
   var killTimer = null;
   function armLoadingKiller() {
     if (killTimer) clearInterval(killTimer);
@@ -588,29 +724,38 @@
     killTimer = setInterval(function () {
       n++;
       hideSpaLoading();
-      patchSetRechargeUrl();
-      if (n === 1 || n === 4 || n === 10) fixRechargeIframe(false);
-      if (!isRechargeIframe() || n > 40) {
+      // só tenta fix 2x no início — evita loop
+      if (n === 1 || n === 5) fixRechargeIframe(false);
+      if (!isRechargeIframe() || n > 20) {
         clearInterval(killTimer);
         killTimer = null;
       }
-    }, 400);
+    }, 500);
   }
 
   var t = null;
+  var __ch7SchedBusy = false;
   function schedule() {
-    patchSetRechargeUrl();
-    if (!isRechargeIframe()) {
-      try {
-        document.body.classList.remove('ch7-recharge-iframe');
-      } catch (e) {}
-      return;
+    if (__ch7SchedBusy) return;
+    __ch7SchedBusy = true;
+    try {
+      patchSetRechargeUrl();
+      if (!isRechargeIframe()) {
+        try {
+          document.body.classList.remove('ch7-recharge-iframe');
+        } catch (e) {}
+        return;
+      }
+      armLoadingKiller();
+      clearTimeout(t);
+      t = setTimeout(function () {
+        fixRechargeIframe(false);
+      }, 150);
+    } finally {
+      setTimeout(function () {
+        __ch7SchedBusy = false;
+      }, 100);
     }
-    armLoadingKiller();
-    clearTimeout(t);
-    t = setTimeout(function () {
-      fixRechargeIframe(false);
-    }, 120);
   }
 
   // success overlay (postMessage from pix-pay)
@@ -664,6 +809,8 @@
     } catch (e) {}
   });
 
+  // SEM MutationObserver no document inteiro — causava loop
+  // (ensureIframe/hideSpaLoading mutam DOM → schedule → de novo).
   window.addEventListener('hashchange', schedule);
   window.addEventListener('popstate', schedule);
   if (document.readyState === 'loading') {
@@ -671,20 +818,15 @@
   } else {
     schedule();
   }
-  setTimeout(schedule, 200);
-  setTimeout(schedule, 800);
-  setTimeout(schedule, 2000);
-  setTimeout(patchSetRechargeUrl, 1000);
-  setTimeout(patchSetRechargeUrl, 3000);
-
-  if (typeof MutationObserver !== 'undefined' && !window.__ch7PixMoV8) {
-    window.__ch7PixMoV8 = 1;
-    var mo = new MutationObserver(function () {
-      if (!isRechargeIframe()) return;
-      schedule();
-    });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  }
+  // boot limitado (não em loop)
+  setTimeout(function () {
+    patchSetRechargeUrl();
+    if (isRechargeIframe()) fixRechargeIframe(false);
+  }, 300);
+  setTimeout(function () {
+    patchSetRechargeUrl();
+    if (isRechargeIframe()) fixRechargeIframe(false);
+  }, 1200);
 
   window.__ch7Pix = {
     fix: function () {

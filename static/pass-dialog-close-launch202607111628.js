@@ -318,13 +318,23 @@
   }
 
   var t = null;
+  var __ch7PassBusy = false;
   function schedule() {
+    if (__ch7PassBusy) return;
     clearTimeout(t);
-    t = setTimeout(tick, 40);
+    t = setTimeout(function () {
+      __ch7PassBusy = true;
+      try {
+        tick();
+      } finally {
+        setTimeout(function () {
+          __ch7PassBusy = false;
+        }, 300);
+      }
+    }, 120);
   }
 
-  setInterval(tick, 400);
-
+  // sem setInterval agressivo (causava loop com MO)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', schedule);
   } else {
@@ -332,17 +342,27 @@
   }
   window.addEventListener('hashchange', schedule);
   window.addEventListener('resize', schedule, { passive: true });
-  setTimeout(schedule, 200);
-  setTimeout(schedule, 800);
-  setTimeout(schedule, 2000);
-  setTimeout(schedule, 5000);
+  setTimeout(schedule, 300);
+  setTimeout(schedule, 1200);
+  setTimeout(schedule, 3000);
 
-  if (typeof MutationObserver !== 'undefined') {
-    new MutationObserver(schedule).observe(document.documentElement, {
+  if (typeof MutationObserver !== 'undefined' && !window.__ch7PassMoV2) {
+    window.__ch7PassMoV2 = 1;
+    new MutationObserver(function (muts) {
+      // só reage a diálogos abertos, não a qualquer mutação
+      var hit = false;
+      for (var i = 0; i < muts.length && !hit; i++) {
+        var n = muts[i].target;
+        if (!n || !n.classList) continue;
+        var cls = n.className && String(n.className);
+        if (cls && /pass|dialog|q-dialog/i.test(cls)) hit = true;
+      }
+      if (hit) schedule();
+    }).observe(document.documentElement, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['class', 'style', 'aria-hidden'],
+      attributeFilter: ['class', 'aria-hidden'],
     });
   }
 

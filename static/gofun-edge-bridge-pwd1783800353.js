@@ -6,16 +6,16 @@
  */
 (function () {
   'use strict';
-  if (window.__ch7GofunBridgeV8) return;
+  if (window.__ch7GofunBridgeV10) return;
+  window.__ch7GofunBridgeV10 = 1;
+  window.__ch7GofunBridgeV9 = 1;
   window.__ch7GofunBridgeV8 = 1;
   window.__ch7GofunBridgeV7 = 1;
 
   var EDGE = 'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1';
   var GOFUN = EDGE + '/gofun';
-  var AUTH_API = EDGE + '/auth-api';
   var ANON =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
-  window.__CH7_AUTH_API__ = AUTH_API;
 
   function isOurHost(hostname) {
     return (
@@ -132,6 +132,12 @@
     );
   }
 
+  /** Local dev: server.mjs tem P0 (vip/shop/auth) — NÃO mandar pro Edge vazio */
+  function isLocalDev() {
+    var h = location.hostname || '';
+    return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+  }
+
   /** /painel/* não existe no GH Pages — reescreve ou stub. */
   function mapPainelUrl(u) {
     try {
@@ -184,11 +190,11 @@
       if (!isOurHost(url.hostname) && u.indexOf('/gofun/') === -1) return u;
 
       if (url.pathname.indexOf('/gofun') === 0) {
+        // localhost → same-origin (front/server.mjs com List VIP completa)
+        if (isLocalDev()) {
+          return location.origin + url.pathname + url.search;
+        }
         return GOFUN + url.pathname.replace(/^\/gofun/, '') + url.search;
-      }
-      // /api/auth/* → Edge auth-api (forgot/reset password)
-      if (url.pathname.indexOf('/api/auth') === 0) {
-        return AUTH_API + url.pathname.replace(/^\/api\/auth/, '') + url.search;
       }
       if (url.pathname.indexOf('/banner/') === 0 || url.pathname.indexOf('/banners/') === 0) {
         var file = url.pathname.split('/').pop();
@@ -351,10 +357,11 @@
       }
     } catch (e) {}
   }
-  setInterval(hookAxios, 600);
+  // hook axios poucas vezes (sem interval infinito)
   setTimeout(hookAxios, 100);
   setTimeout(hookAxios, 500);
   setTimeout(hookAxios, 1500);
+  setTimeout(hookAxios, 4000);
 
   // SW cleanup
   if ('serviceWorker' in navigator) {
