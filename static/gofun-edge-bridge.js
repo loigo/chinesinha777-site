@@ -27,6 +27,11 @@
       if (url.pathname.indexOf('/game-shell') === 0) {
         return location.origin + '/static/game-shell-stub.html' + url.search;
       }
+      // banners do firstpage (mesmo CDN do local banana_man)
+      if (url.pathname.indexOf('/banner/') === 0 || url.pathname.indexOf('/banners/') === 0) {
+        var file = url.pathname.split('/').pop();
+        return 'https://www.okx007.com/res/banana_man/banner/' + file;
+      }
     } catch (e) {}
     return u;
   }
