@@ -63,28 +63,27 @@
     setTimeout(warmFirstpage, 2000);
   }
 
-  // ── 3) Service Worker v8 — limpa caches antigos e atualiza SW (sem página Offline) ──
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  // ── 3) Service Worker: só limpar (NÃO registrar — evita scope errors em prod/estático) ──
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      if (window.__ch7SwReg) return;
-      window.__ch7SwReg = 1;
+      if (window.__ch7SwClean) return;
+      window.__ch7SwClean = 1;
+      try {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) {
+            try {
+              r.unregister();
+            } catch (e) {}
+          });
+        });
+      } catch (e) {}
       if (window.caches && caches.keys) {
         caches.keys().then(function (keys) {
           keys.forEach(function (k) {
-            if (/ch7-static-v[1-7]/i.test(k) || /workbox|precache/i.test(k)) {
-              caches.delete(k).catch(function () {});
-            }
+            caches.delete(k).catch(function () {});
           });
         }).catch(function () {});
       }
-      navigator.serviceWorker
-        .register('/sw.js?v=8', { scope: '/' })
-        .then(function (reg) {
-          try {
-            reg.update();
-          } catch (e) {}
-        })
-        .catch(function () {});
     });
   }
 

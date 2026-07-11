@@ -26,23 +26,25 @@
     'autoplay *; fullscreen *; payment *; clipboard-write *; ' +
     'accelerometer *; gyroscope *; encrypted-media *';
 
+  // Patch defensivo no shell do jogo (same-origin). Não quebra beacon/CF analytics.
   var XHR_SAFE_PATCH =
     '(function(){try{' +
     'if(window.__ch7XhrSafe)return;window.__ch7XhrSafe=1;' +
-    'function wrapFormatar(fn){return function(u){try{var r=fn(u);return r==null?u:r;}catch(e){return u;}};}' +
+    'function safeStr(u){try{if(u==null)return"";if(typeof u==="string")return u;if(typeof URL!=="undefined"&&u instanceof URL)return u.href;return String(u);}catch(e){return"";}}' +
+    'function wrapFormatar(fn){return function(u){try{var s=safeStr(u);if(!s)return s;var r=fn.call(this,s);return r==null?s:r;}catch(e){return safeStr(u);}};}' +
     'try{' +
-    'var _desc=Object.getOwnPropertyDescriptor(window,"formatarURL");' +
-    'if(!_desc||_desc.configurable){' +
-    'var _f=typeof formatarURL==="function"?formatarURL:null;' +
+    'var _f=typeof window.formatarURL==="function"?window.formatarURL:null;' +
+    'window.formatarURL=function(u){try{if(!_f)return safeStr(u);var s=safeStr(u);if(!s)return s;if(/cloudflareinsights|google|facebook|hotjar/i.test(s))return s;var r=_f.call(this,s);return r==null?s:r;}catch(e){return safeStr(u);}};' +
     'Object.defineProperty(window,"formatarURL",{configurable:true,enumerable:true,' +
-    'get:function(){return _f?wrapFormatar(_f):function(u){return u;};},' +
-    'set:function(fn){_f=typeof fn==="function"?fn:null;}});' +
-    '}' +
+    'get:function(){return window.__ch7Fmt||function(u){return safeStr(u);};},' +
+    'set:function(fn){window.__ch7Fmt=typeof fn==="function"?wrapFormatar(fn):function(u){return safeStr(u);};}});' +
+    'if(_f)window.__ch7Fmt=wrapFormatar(_f);' +
     '}catch(e){}' +
     'var _open=XMLHttpRequest.prototype.open;' +
     'XMLHttpRequest.prototype.open=function(method,url){' +
-    'try{return _open.apply(this,arguments);}' +
-    'catch(err){try{return _open.call(this,method,url==null?"":String(url),true);}catch(e2){}}' +
+    'try{if(url==null)url="";else if(typeof url!=="string")url=safeStr(url);' +
+    'return _open.call(this,method,url,arguments.length>2?arguments[2]:true);}' +
+    'catch(err){try{return _open.call(this,method,"",true);}catch(e2){}}' +
     '};' +
     '}catch(e){}})();';
 
@@ -69,7 +71,15 @@
     return false;
   }
 
+  // Em produção estática (GH Pages) NÃO proxy via /game-shell (não existe server.mjs).
+  // Abrir jogo direto na URL do provider evita stub/CSP e formatarURL quebrado.
+  function isStaticProdHost() {
+    var h = location.hostname || '';
+    return h === 'chinesinha777.bet' || h === 'www.chinesinha777.bet' || /\.github\.io$/i.test(h);
+  }
+
   function needsProxy(src) {
+    if (isStaticProdHost()) return false;
     var s = String(src || '');
     if (!s || /\/game-shell\b/i.test(s)) return false;
     if (isPixSrc(s)) return false;
@@ -83,6 +93,7 @@
   }
 
   function toProxyUrl(src) {
+    if (isStaticProdHost()) return src;
     try {
       var abs = new URL(src, location.href).href;
       return location.origin + '/game-shell?u=' + encodeURIComponent(abs);
