@@ -1,10 +1,11 @@
 /**
  * Garante que #/rechargeIframe mostre o PIX (QR + copia e cola).
- * v8 — corrige loading eterno, sandbox, URL /pix-pay vs .html, pinia setRechargeUrl.
+ * v9 — modal de erro amigável + instruções login/suporte.
  */
 (function () {
   'use strict';
-  if (window.__ch7DepositPixInitV8) return;
+  if (window.__ch7DepositPixInitV9) return;
+  window.__ch7DepositPixInitV9 = 1;
   window.__ch7DepositPixInitV8 = 1;
   window.__ch7DepositPixInit = 1;
 
@@ -403,13 +404,21 @@
     return null;
   }
 
-  function harvestShopOrderBody(text) {
+  function parseShopOrderPayload(text) {
     try {
-      var j = JSON.parse(text);
-      return pickPayFromObj(j);
+      if (text && (text.charAt(0) === '{' || text.charAt(0) === '[')) {
+        return JSON.parse(text);
+      }
     } catch (e) {}
-    var dec = tryDecryptAes(text);
-    if (dec) return pickPayFromObj(dec);
+    return tryDecryptAes(text);
+  }
+
+  function harvestShopOrderBody(text) {
+    var j = parseShopOrderPayload(text);
+    if (j) {
+      var hit = pickPayFromObj(j);
+      if (hit) return hit;
+    }
     try {
       var m = String(text || '').match(
         /https?:\/\/[^\s"'\\]+pix-pay(?:\.html)?\?order=[A-Za-z0-9_-]+/i,
@@ -422,6 +431,83 @@
       }
     } catch (e2) {}
     return null;
+  }
+
+  var ERR_ID = 'ch7-deposit-error-modal';
+  var HELP =
+    'Faça login novamente e tente o depósito. Se o problema persistir, contate o suporte.';
+
+  function showDepositError(msg) {
+    hideSpaLoading();
+    var text = String(msg || 'Não foi possível processar o depósito.').trim();
+    if (!/contate o suporte|faça login novamente/i.test(text)) {
+      text = text + ' ' + HELP;
+    }
+    var old = document.getElementById(ERR_ID);
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = ERR_ID;
+    el.setAttribute('role', 'alertdialog');
+    el.style.cssText =
+      'position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;' +
+      'padding:16px;background:rgba(8,6,4,.88)';
+    el.innerHTML =
+      '<div style="max-width:400px;width:100%;text-align:center;border-radius:18px;padding:22px 18px;' +
+      'background:linear-gradient(165deg,#2c2114,#16120c);border:1px solid rgba(246,207,135,.35);' +
+      'color:#fff;font:500 14px/1.5 system-ui,sans-serif;box-shadow:0 16px 48px rgba(0,0,0,.5)">' +
+      '<div style="font-size:36px;margin-bottom:8px">⚠️</div>' +
+      '<h2 style="margin:0 0 10px;color:#f6cf87;font:800 1.1rem/1.3 system-ui,sans-serif">Não foi possível gerar o PIX</h2>' +
+      '<p style="margin:0 0 12px;color:rgba(255,255,255,.85)">' +
+      text.replace(/</g, '') +
+      '</p>' +
+      '<p style="margin:0 0 16px;font-size:12.5px;color:#aeb7bb;line-height:1.45">' +
+      HELP +
+      '</p>' +
+      '<button type="button" id="ch7-de-login" style="width:100%;padding:13px;border:0;border-radius:12px;' +
+      'font-weight:800;cursor:pointer;background:linear-gradient(180deg,#ffe566,#f0b429);color:#1a1208">Entrar / Fazer login</button>' +
+      '<button type="button" id="ch7-de-close" style="width:100%;margin-top:8px;padding:12px;border:0;border-radius:12px;' +
+      'font-weight:700;cursor:pointer;background:#323749;color:#fff">Fechar</button>' +
+      '</div>';
+    document.body.appendChild(el);
+    var b1 = document.getElementById('ch7-de-login');
+    if (b1)
+      b1.onclick = function () {
+        try {
+          el.remove();
+        } catch (e) {}
+        location.hash = '#/';
+        setTimeout(function () {
+          try {
+            var btns = document.querySelectorAll('button, .q-btn, a, span, div');
+            for (var i = 0; i < btns.length; i++) {
+              var t = (btns[i].textContent || '').replace(/\s+/g, ' ').trim();
+              if (/^(Entrar|Login)$/i.test(t)) {
+                btns[i].click();
+                break;
+              }
+            }
+          } catch (e2) {}
+        }, 350);
+      };
+    var b2 = document.getElementById('ch7-de-close');
+    if (b2)
+      b2.onclick = function () {
+        try {
+          el.remove();
+        } catch (e) {}
+      };
+  }
+
+  function handleShopOrderResponse(text) {
+    var hit = harvestShopOrderBody(text);
+    if (hit && hit.pay) {
+      onShopOrderHit(hit.pay, hit.oid);
+      return;
+    }
+    var j = parseShopOrderPayload(text);
+    if (j && typeof j === 'object' && j.code != null && Number(j.code) !== 0) {
+      showDepositError(j.msg || j.message || 'Erro ao processar o depósito.');
+    }
   }
 
   function onShopOrderHit(pay, oid) {
@@ -445,7 +531,8 @@
   }
 
   // fetch intercept
-  if (typeof window.fetch === 'function' && !window.__ch7PixFetchV8) {
+  if (typeof window.fetch === 'function' && !window.__ch7PixFetchV9) {
+    window.__ch7PixFetchV9 = 1;
     window.__ch7PixFetchV8 = 1;
     var _fetch = window.fetch;
     window.fetch = function (input, init) {
@@ -457,8 +544,7 @@
               .clone()
               .text()
               .then(function (text) {
-                var hit = harvestShopOrderBody(text);
-                if (hit) onShopOrderHit(hit.pay, hit.oid);
+                handleShopOrderResponse(text);
               })
               .catch(function () {});
           }
@@ -469,7 +555,8 @@
   }
 
   // XHR intercept
-  if (typeof XMLHttpRequest !== 'undefined' && !window.__ch7PixXhrV8) {
+  if (typeof XMLHttpRequest !== 'undefined' && !window.__ch7PixXhrV9) {
+    window.__ch7PixXhrV9 = 1;
     window.__ch7PixXhrV8 = 1;
     var _open = XMLHttpRequest.prototype.open;
     var _send = XMLHttpRequest.prototype.send;
@@ -482,8 +569,7 @@
       if (/shop\/order/i.test(xhr.__ch7u || '')) {
         xhr.addEventListener('load', function () {
           try {
-            var hit = harvestShopOrderBody(xhr.responseText || '');
-            if (hit) onShopOrderHit(hit.pay, hit.oid);
+            handleShopOrderResponse(xhr.responseText || '');
           } catch (e) {}
           setTimeout(hideSpaLoading, 80);
           setTimeout(hideSpaLoading, 600);

@@ -7,33 +7,41 @@
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#171512;color:#fff;
-    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:12px}
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:14px}
   .card{background:linear-gradient(180deg,#242018 0%,#1a1814 100%);border:1px solid rgba(246,207,135,.28);
-    border-radius:18px;padding:20px 18px 22px;max-width:400px;width:100%;
+    border-radius:18px;padding:22px 18px 22px;max-width:420px;width:100%;
     box-shadow:0 12px 40px rgba(0,0,0,.45)}
-  h1{font-size:1.05rem;color:#f6cf87;margin:0 0 4px;font-weight:800;letter-spacing:.02em}
-  .order{font-size:12px;color:#8a8680;margin:0 0 10px;word-break:break-all}
-  .amount{font-size:2rem;font-weight:800;color:#ffe13c;margin:4px 0 6px;line-height:1.1}
-  .bonus{font-size:12px;color:#7bfe7c;margin:0 0 10px}
+  h1{font-size:1.1rem;color:#f6cf87;margin:0 0 4px;font-weight:800;letter-spacing:.02em}
+  .order{font-size:11px;color:#8a8680;margin:0 0 12px;word-break:break-all}
+  .amount-label{font-size:12px;color:#aeb7bb;margin:0 0 2px;font-weight:600}
+  .amount{font-size:2.15rem;font-weight:800;color:#ffe13c;margin:0 0 6px;line-height:1.1}
+  .bonus{font-size:13px;color:#7bfe7c;margin:0 0 8px;font-weight:600}
+  .ttl{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#f6cf87;font-weight:700;
+    background:rgba(246,207,135,.1);border:1px solid rgba(246,207,135,.22);border-radius:999px;
+    padding:6px 12px;margin:0 0 12px}
+  .ttl.expired{color:#f87171;background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3)}
   #status{font-size:14px;color:#c8c2b8;margin:0 0 14px;min-height:1.3em}
   #status .ok{color:#7bfe7c;font-weight:700}
   #status .wait{color:#f6cf87}
-  .qr-wrap{display:flex;flex-direction:column;align-items:center;margin:0 0 14px}
-  .qr-box{background:#fff;border-radius:14px;padding:12px;box-shadow:0 4px 20px rgba(0,0,0,.35);
-    display:flex;align-items:center;justify-content:center;min-height:260px;min-width:260px}
-  .qr-box img,.qr-box canvas{display:block;width:240px;height:240px}
-  .qr-hint{font-size:12px;color:#aeb7bb;margin:10px 0 0;text-align:center;line-height:1.4}
+  .qr-wrap{display:flex;flex-direction:column;align-items:center;margin:0 0 16px}
+  .qr-box{background:#fff;border-radius:16px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.35);
+    display:flex;align-items:center;justify-content:center;min-height:300px;min-width:300px}
+  .qr-box img,.qr-box canvas{display:block;width:280px;height:280px}
+  .qr-hint{font-size:12px;color:#aeb7bb;margin:12px 0 0;text-align:center;line-height:1.45;max-width:320px}
   .label{font-size:12px;color:#aeb7bb;margin:0 0 6px;font-weight:600}
   .pix{word-break:break-all;background:#0c0b09;border:1px solid rgba(246,207,135,.15);
-    border-radius:10px;padding:12px;font-size:11px;line-height:1.45;color:#d4cfc6;
-    max-height:96px;overflow:auto;user-select:all}
+    border-radius:10px;padding:12px;font-size:12px;line-height:1.5;color:#d4cfc6;
+    max-height:110px;overflow:auto;user-select:all}
   button{width:100%;margin-top:10px;padding:13px 14px;border:0;border-radius:12px;
     background:linear-gradient(180deg,#ffe566,#f0b429 55%,#d4920a);color:#1a1208;
     font-weight:800;font-size:.95rem;cursor:pointer;letter-spacing:.02em}
   button:active{transform:scale(.98)}
   button.secondary{background:#323749;color:#fff;font-weight:700}
   button.copied{background:linear-gradient(180deg,#86efac,#22c55e)!important;color:#052e16}
-  .err{color:#f87171;font-size:13px;text-align:center;padding:20px 8px}
+  .err{color:#f87171;font-size:13px;text-align:center;padding:20px 8px;line-height:1.5}
+  .help{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.25);
+    border:1px solid rgba(255,255,255,.06);font-size:11px;color:#aeb7bb;line-height:1.45}
+  .help b{color:#f6cf87}
   #success{
     display:none;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;
     padding:16px;background:radial-gradient(ellipse at 50% 30%,#2a1a08 0%,#0a0908 70%);
@@ -77,17 +85,20 @@
     <h1>Pagamento PIX</h1>
     <p class="order" id="orderLabel">Carregando pedido…</p>
     <div id="payBlock">
+      <p class="amount-label">Valor do depósito</p>
       <div class="amount" id="amount">R$ —</div>
       <p class="bonus" id="bonus" style="display:none"></p>
+      <div class="ttl" id="ttl" style="display:none"><span>⏱</span> <span id="ttlText">Válido por 30:00</span></div>
       <p id="status"><span class="wait">Aguardando pagamento…</span></p>
       <div class="qr-wrap">
         <div class="qr-box" id="qrBox"><span style="color:#333;font-size:13px">Gerando QR…</span></div>
-        <p class="qr-hint">Abra o app do seu banco e escaneie o QR Code<br/>ou use o copia e cola abaixo.</p>
+        <p class="qr-hint">Abra o app do seu banco e escaneie o <b style="color:#f6cf87">QR Code</b><br/>ou use o código copia e cola abaixo.</p>
       </div>
       <p class="label">PIX Copia e Cola</p>
       <div class="pix" id="pixCode">—</div>
       <button type="button" id="btnCopy">Copiar código PIX</button>
       <button type="button" class="secondary" id="btnClose">Fechar</button>
+      <div class="help"><b>Dica:</b> pague dentro do prazo. Se o PIX expirar, volte e gere um novo depósito. Suporte se precisar de ajuda.</div>
     </div>
     <div id="err" class="err" style="display:none"></div>
   </div>
@@ -99,6 +110,8 @@
   var params = new URLSearchParams(location.search);
   var orderId = params.get('order') || params.get('id') || '';
   var paid = false;
+  var expiresAtMs = 0;
+  var ttlTimer = null;
 
   function brl(n) {
     return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -106,6 +119,7 @@
 
   function showPaid(amount) {
     paid = true;
+    if (ttlTimer) clearInterval(ttlTimer);
     document.body.classList.add('paid-mode');
     document.getElementById('success').classList.add('show');
     document.getElementById('sAmount').textContent = 'R$ ' + brl(amount);
@@ -116,23 +130,65 @@
     document.getElementById('payBlock').style.display = 'none';
     var e = document.getElementById('err');
     e.style.display = 'block';
-    e.textContent = msg;
+    e.innerHTML = msg +
+      '<br/><br/><button type="button" id="btnRetry" style="max-width:280px;margin:0 auto">Gerar novo depósito</button>';
+    var b = document.getElementById('btnRetry');
+    if (b) b.onclick = function () {
+      try { window.parent.postMessage({ type: 'ch7-pix-close' }, '*'); } catch (x) {}
+      try { window.parent.location.hash = '#/recharge'; } catch (x2) {
+        location.href = '/#/recharge';
+      }
+    };
   }
 
   function renderQr(pix) {
     var box = document.getElementById('qrBox');
     box.innerHTML = '';
+    var size = 280;
     if (window.QRCode && QRCode.toCanvas) {
       var c = document.createElement('canvas');
       box.appendChild(c);
-      QRCode.toCanvas(c, pix, { width: 240, margin: 1 }, function (err) {
+      QRCode.toCanvas(c, pix, { width: size, margin: 1 }, function (err) {
         if (err) {
-          box.innerHTML = '<img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(pix) + '"/>';
+          box.innerHTML = '<img alt="QR" width="'+size+'" height="'+size+'" src="https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data=' + encodeURIComponent(pix) + '"/>';
         }
       });
     } else {
-      box.innerHTML = '<img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(pix) + '"/>';
+      box.innerHTML = '<img alt="QR" width="'+size+'" height="'+size+'" src="https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data=' + encodeURIComponent(pix) + '"/>';
     }
+  }
+
+  function tickTtl() {
+    var el = document.getElementById('ttl');
+    var txt = document.getElementById('ttlText');
+    if (!el || !txt || !expiresAtMs) return;
+    var left = Math.max(0, expiresAtMs - Date.now());
+    el.style.display = 'inline-flex';
+    if (left <= 0) {
+      el.classList.add('expired');
+      txt.textContent = 'PIX expirado — gere um novo depósito';
+      if (ttlTimer) clearInterval(ttlTimer);
+      return;
+    }
+    el.classList.remove('expired');
+    var sec = Math.floor(left / 1000);
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    txt.textContent = 'Válido por ' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function startTtl(expiresAt, createdAt) {
+    if (expiresAt) {
+      expiresAtMs = new Date(expiresAt).getTime();
+    } else if (createdAt) {
+      expiresAtMs = new Date(createdAt).getTime() + 30 * 60 * 1000;
+    } else {
+      expiresAtMs = Date.now() + 30 * 60 * 1000;
+    }
+    if (!Number.isFinite(expiresAtMs)) expiresAtMs = Date.now() + 30 * 60 * 1000;
+    tickTtl();
+    if (ttlTimer) clearInterval(ttlTimer);
+    ttlTimer = setInterval(tickTtl, 1000);
   }
 
   async function loadOrder() {
@@ -155,8 +211,9 @@
       if (o.bonusReais > 0) {
         var b = document.getElementById('bonus');
         b.style.display = 'block';
-        b.textContent = '+ R$ ' + brl(o.bonusReais) + ' de bônus';
+        b.textContent = '+ R$ ' + brl(o.bonusReais) + ' de bônus no crédito';
       }
+      startTtl(o.expiresAt, o.createdAt);
       if (o.status === 'paid' || o.credited) {
         showPaid(o.amountReais);
         return;
