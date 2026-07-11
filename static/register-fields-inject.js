@@ -1,14 +1,17 @@
 /**
- * Cadastro: injeta Nome Completo + E-mail acima de Telefone/Senha
- * e anexa name/email no body de /account/regist|register.
- *
- * Login: NÃO injeta Nome/E-mail — só Telefone/E-mail nativo + Senha.
+ * Cadastro: Nome Completo + E-mail + CPF (acima de telefone/senha).
+ * Login: placeholder "Telefone ou E-mail" (sem campos extras).
+ * Envia name/email/cpf no body (JSON ou AES) e headers x-ch7-*.
+ * v6 — produção estável + CPF + login e-mail.
  */
 (function () {
   'use strict';
+  if (window.__ch7RegisterFieldsV6) return;
+  window.__ch7RegisterFieldsV6 = 1;
 
-  var STYLE_ID = 'ch7-register-fields-style';
+  var STYLE_ID = 'ch7-register-fields-style-v6';
   var BOX_ID = 'ch7-register-extra-fields';
+  var CRYPTO_KEY = '9EzYC7IZE1PTREu8';
 
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
@@ -17,11 +20,11 @@
     s.textContent =
       '#' +
       BOX_ID +
-      '{display:flex;flex-direction:column;gap:12px;width:100%;margin:0 0 12px;box-sizing:border-box;}' +
+      '{display:flex!important;flex-direction:column;gap:12px;width:100%;margin:0 0 12px;box-sizing:border-box;z-index:5;position:relative;}' +
       '#' +
       BOX_ID +
       ' .ch7-reg-field{' +
-      'display:flex;align-items:center;gap:10px;width:100%;min-height:48px;' +
+      'display:flex!important;align-items:center;gap:10px;width:100%;min-height:48px;' +
       'padding:0 14px;border-radius:12px;box-sizing:border-box;' +
       'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);' +
       'color:#e8e8e8;font:400 15px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;' +
@@ -41,8 +44,13 @@
       '#' +
       BOX_ID +
       ' .ch7-reg-field input::placeholder{color:rgba(255,255,255,0.45);}' +
-      /* Login: esconde +55 se o usuário digitar e-mail */
-      '.login-dialog-container.ch7-login-email-mode .country-code{display:none!important;}';
+      '.login-dialog-container.ch7-login-email-mode .country-code{display:none!important;}' +
+      '#' +
+      BOX_ID +
+      ' .ch7-reg-err{color:#ff8a8a;font-size:12px;margin:-4px 0 0 4px;display:none;}' +
+      '#' +
+      BOX_ID +
+      ' .ch7-reg-err.show{display:block;}';
     document.head.appendChild(s);
   }
 
@@ -52,55 +60,44 @@
       document.querySelector('.login-dialog') ||
       document.querySelector('.dialogBox.q-dialog') ||
       document.querySelector('.q-dialog .login-dialog-card') ||
+      document.querySelector('.q-dialog') ||
       null
     );
   }
 
-  /**
-   * true somente na aba/cadastro Registrar.
-   * Nunca confiar só em "Registrar-se" (tab sempre visível no Login).
-   */
   function isRegisterContext() {
     var root = dialogRoot();
-    if (!root) {
-      // sem dialog: não injeta (evita lixo na home)
-      return false;
-    }
+    if (!root) return false;
 
-    // 1) Aba ativa
     var activeTab =
       root.querySelector('.tab.active') ||
       root.querySelector('.tabs .active') ||
-      root.querySelector('[class*="tab"].active');
+      root.querySelector('[class*="tab"].active') ||
+      root.querySelector('.q-tab--active');
     if (activeTab) {
       var tabTxt = (activeTab.textContent || '').replace(/\s+/g, ' ').trim();
       if (/^Login$|^Entrar$/i.test(tabTxt)) return false;
       if (/Registrar|Cadastro|Sign\s*up|Register/i.test(tabTxt)) return true;
     }
 
-    // 2) Botão principal de submit (azul grande)
     var buttons = root.querySelectorAll('button, .q-btn, [type="submit"]');
     for (var i = 0; i < buttons.length; i++) {
       var b = buttons[i];
       if (b.offsetParent === null && b.getClientRects().length === 0) continue;
       var t = (b.textContent || '').replace(/\s+/g, ' ').trim();
-      // submit principal costuma ser só "Login" ou "Registrar-se"
       if (/^Login$|^Entrar$/i.test(t)) return false;
-      if (/^Registrar(-se)?$/i.test(t)) return true;
+      if (/^Registrar(-se)?$/i.test(t) || /Cadastrar/i.test(t)) return true;
     }
 
-    // 3) Placeholder do campo telefone nativo
     var phone = findPhoneInput();
     if (phone) {
       var ph = String(phone.getAttribute('placeholder') || phone.placeholder || '');
       if (/Novo\s*Telefone/i.test(ph)) return true;
-      if (/^Telefone$/i.test(ph.trim()) || /Telefone ou E-?mail/i.test(ph)) return false;
+      if (/Telefone ou E-?mail/i.test(ph) || /^Telefone$/i.test(ph.trim())) return false;
     }
 
-    // 4) URL (raro no SPA modal)
     var href = String(location.href || '') + String(location.hash || '');
     if (/regist|register|signup|sign-up/i.test(href)) return true;
-
     return false;
   }
 
@@ -108,7 +105,6 @@
     var root = dialogRoot();
     if (!root) return false;
     if (isRegisterContext()) return false;
-    // dialog de auth aberto com senha
     return !!findPasswordInput();
   }
 
@@ -141,6 +137,41 @@
     return null;
   }
 
+  function onlyDigits(s) {
+    return String(s || '').replace(/\D/g, '');
+  }
+
+  function isValidCpf(cpf) {
+    var d = onlyDigits(cpf);
+    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+    var s = 0;
+    for (var i = 0; i < 9; i++) s += Number(d[i]) * (10 - i);
+    var r = (s * 10) % 11;
+    if (r === 10) r = 0;
+    if (r !== Number(d[9])) return false;
+    s = 0;
+    for (var j = 0; j < 10; j++) s += Number(d[j]) * (11 - j);
+    r = (s * 10) % 11;
+    if (r === 10) r = 0;
+    return r === Number(d[10]);
+  }
+
+  function maskCpf(v) {
+    var d = onlyDigits(v).slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return d.slice(0, 3) + '.' + d.slice(3);
+    if (d.length <= 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+    return (
+      d.slice(0, 3) +
+      '.' +
+      d.slice(3, 6) +
+      '.' +
+      d.slice(6, 9) +
+      '-' +
+      d.slice(9)
+    );
+  }
+
   function makeField(opts) {
     var wrap = document.createElement('div');
     wrap.className = 'ch7-reg-field';
@@ -159,6 +190,7 @@
     input.id = 'ch7-reg-' + opts.key;
     input.setAttribute('aria-label', opts.placeholder);
     if (opts.inputmode) input.setAttribute('inputmode', opts.inputmode);
+    if (opts.maxlength) input.setAttribute('maxlength', String(opts.maxlength));
 
     wrap.appendChild(ico);
     wrap.appendChild(input);
@@ -170,7 +202,6 @@
     if (old) old.remove();
   }
 
-  /** Login: um único campo aceita telefone ou e-mail */
   function adaptLoginIdentityField() {
     var root = dialogRoot();
     var phone = findPhoneInput();
@@ -178,7 +209,6 @@
       if (root) root.classList.remove('ch7-login-email-mode');
       return;
     }
-
     ensureStyle();
     phone.removeAttribute('maxlength');
     phone.setAttribute('maxlength', '80');
@@ -188,23 +218,11 @@
     phone.placeholder = 'Telefone ou E-mail';
     phone.setAttribute('aria-label', 'Telefone ou E-mail');
 
-    // Neutraliza validação nativa Quasar (só dígitos) se ainda estiver ativa
-    try {
-      var field = phone.closest('.q-field') || phone.closest('.q-input');
-      if (field && field.__vueParentComponent) {
-        var props = field.__vueParentComponent.props;
-        if (props && Array.isArray(props.rules)) {
-          // deixa o rules do formulário; se for só dígitos, será coberto pelo patch de assets
-        }
-      }
-    } catch (e) {}
-
     var val = String(phone.value || '');
     if (root) {
       if (/@/.test(val)) root.classList.add('ch7-login-email-mode');
       else root.classList.remove('ch7-login-email-mode');
     }
-
     if (!phone.__ch7LoginBound) {
       phone.__ch7LoginBound = true;
       phone.addEventListener('input', function () {
@@ -218,60 +236,7 @@
     }
   }
 
-  /**
-   * Intercepta respostas de login e normaliza mensagens amigáveis no toast do SPA.
-   */
-  function patchLoginErrorMessages() {
-    if (window.__ch7LoginMsgPatch) return;
-    window.__ch7LoginMsgPatch = 1;
-
-    function mapMsg(msg) {
-      var m = String(msg || '');
-      if (/acccount does not exist|password is incorrect|account does not exist/i.test(m)) {
-        return 'E-mail/telefone ou senha incorretos';
-      }
-      if (/invalid request param/i.test(m) && /@/.test(m)) return 'E-mail inválido';
-      if (/E-mail inválido|Número de telefone inválido|E-mail\/telefone/i.test(m)) return m;
-      if (/invalid request param/i.test(m)) return m;
-      return m;
-    }
-
-    // Quasar Notify intercept
-    try {
-      var desc = Object.getOwnPropertyDescriptor(window, 'Quasar') || null;
-    } catch (e) {}
-
-    // Intercepta body de resposta de login (fetch)
-    if (typeof window.fetch === 'function') {
-      var _fetch = window.fetch;
-      window.fetch = function (input, init) {
-        var url = typeof input === 'string' ? input : (input && input.url) || '';
-        return _fetch.apply(this, arguments).then(function (res) {
-          if (!/account\/login/i.test(url) || !res || !res.clone) return res;
-          res
-            .clone()
-            .text()
-            .then(function (txt) {
-              try {
-                // pode ser AES (base64) — ignora
-                if (!txt || txt.length < 2 || txt[0] !== '{') return;
-                var j = JSON.parse(txt);
-                if (j && j.msg) j.msg = mapMsg(j.msg);
-              } catch (e) {}
-            })
-            .catch(function () {});
-          return res;
-        });
-      };
-    }
-  }
-
-  try {
-    patchLoginErrorMessages();
-  } catch (e) {}
-
   function injectFields() {
-    // Login → remove extras e adapta identidade
     if (!isRegisterContext()) {
       removeExtraFields();
       try {
@@ -317,65 +282,237 @@
       type: 'email',
       inputmode: 'email',
     });
+    var cpfF = makeField({
+      key: 'cpf',
+      name: 'ch7_cpf',
+      icon: '🪪',
+      placeholder: 'CPF',
+      autocomplete: 'off',
+      type: 'text',
+      inputmode: 'numeric',
+      maxlength: 14,
+    });
+    cpfF.input.addEventListener('input', function () {
+      var pos = cpfF.input.selectionStart;
+      var before = cpfF.input.value;
+      cpfF.input.value = maskCpf(before);
+      try {
+        cpfF.input.setSelectionRange(cpfF.input.value.length, cpfF.input.value.length);
+      } catch (e) {}
+    });
+
+    var err = document.createElement('div');
+    err.className = 'ch7-reg-err';
+    err.id = 'ch7-reg-err';
 
     box.appendChild(nameF.wrap);
     box.appendChild(emailF.wrap);
+    box.appendChild(cpfF.wrap);
+    box.appendChild(err);
 
     if (phoneRow && phoneRow.parentElement) {
       phoneRow.parentElement.insertBefore(box, phoneRow);
     } else {
       container.insertBefore(box, container.firstChild);
     }
+
+    // adapta placeholder do telefone no cadastro
+    if (phone) {
+      phone.placeholder = phone.placeholder || 'Novo Telefone';
+    }
   }
 
   function readExtra() {
     var nameEl = document.getElementById('ch7-reg-name');
     var emailEl = document.getElementById('ch7-reg-email');
+    var cpfEl = document.getElementById('ch7-reg-cpf');
     return {
       name: nameEl ? String(nameEl.value || '').trim() : '',
       email: emailEl ? String(emailEl.value || '').trim().toLowerCase() : '',
+      cpf: cpfEl ? onlyDigits(cpfEl.value) : '',
     };
+  }
+
+  function showRegError(msg) {
+    var el = document.getElementById('ch7-reg-err');
+    if (!el) return;
+    if (!msg) {
+      el.classList.remove('show');
+      el.textContent = '';
+      return;
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function validateExtra(extra) {
+    if (!extra.name || extra.name.length < 3) {
+      showRegError('Informe o nome completo.');
+      return false;
+    }
+    if (!extra.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extra.email)) {
+      showRegError('Informe um e-mail válido.');
+      return false;
+    }
+    if (!extra.cpf || !isValidCpf(extra.cpf)) {
+      showRegError('Informe um CPF válido.');
+      return false;
+    }
+    showRegError('');
+    return true;
+  }
+
+  // ── AES helpers (mesmo key do SPA) ──
+  function tryDecryptAes(text) {
+    var raw = String(text || '').trim();
+    if (!raw || raw.charAt(0) === '{' || raw.charAt(0) === '[') return null;
+    try {
+      var C = window.CryptoJS;
+      if (!C) return null;
+      var key = C.enc.Utf8.parse(CRYPTO_KEY);
+      var params = C.lib.CipherParams.create({
+        ciphertext: C.enc.Base64.parse(raw),
+      });
+      var dec = C.AES.decrypt(params, key, {
+        mode: C.mode.ECB,
+        padding: C.pad.Pkcs7,
+      });
+      var plain = dec.toString(C.enc.Utf8);
+      if (plain && plain.charAt(0) === '{') return JSON.parse(plain);
+    } catch (e) {}
+    return null;
+  }
+
+  function tryEncryptAes(obj) {
+    try {
+      var C = window.CryptoJS;
+      if (!C) return null;
+      var key = C.enc.Utf8.parse(CRYPTO_KEY);
+      var src = C.enc.Utf8.parse(JSON.stringify(obj));
+      var enc = C.AES.encrypt(src, key, {
+        mode: C.mode.ECB,
+        padding: C.pad.Pkcs7,
+      });
+      return C.enc.Base64.stringify(enc.ciphertext);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function applyExtraToObj(target, extra) {
+    if (!target || typeof target !== 'object') target = {};
+    if (extra.name) {
+      target.name = extra.name;
+      target.Name = extra.name;
+      target.nick = target.nick || extra.name;
+      target.Nick = target.Nick || extra.name;
+      target.realName = extra.name;
+    }
+    if (extra.email) {
+      target.email = extra.email;
+      target.Email = extra.email;
+      target.mail = extra.email;
+    }
+    if (extra.cpf) {
+      target.cpf = extra.cpf;
+      target.CPF = extra.cpf;
+      target.Cpf = extra.cpf;
+    }
+    return target;
   }
 
   function enrichRegisterBody(text) {
     var extra = readExtra();
-    if (!extra.name && !extra.email) return text;
+    if (!extra.name && !extra.email && !extra.cpf) return text;
+    // plain JSON
     try {
-      var body = text ? JSON.parse(text) : {};
-      if (!body || typeof body !== 'object') body = {};
-      var target = body.data && typeof body.data === 'object' ? body.data : body;
-      if (extra.name) {
-        target.name = extra.name;
-        target.Name = extra.name;
-        target.nick = target.nick || extra.name;
-        target.Nick = target.Nick || extra.name;
-        target.realName = extra.name;
+      if (text && (text.charAt(0) === '{' || text.charAt(0) === '[')) {
+        var body = JSON.parse(text);
+        if (!body || typeof body !== 'object') body = {};
+        var target = body.data && typeof body.data === 'object' ? body.data : body;
+        target = applyExtraToObj(target, extra);
+        if (body.data && typeof body.data === 'object') body.data = target;
+        else body = target;
+        return JSON.stringify(body);
       }
-      if (extra.email) {
-        target.email = extra.email;
-        target.Email = extra.email;
-        target.mail = extra.email;
-      }
-      if (body.data && typeof body.data === 'object') body.data = target;
-      else body = target;
-      return JSON.stringify(body);
-    } catch (e) {
-      return text;
+    } catch (e) {}
+    // AES ciphertext
+    var dec = tryDecryptAes(text);
+    if (dec && typeof dec === 'object') {
+      var t2 = dec.data && typeof dec.data === 'object' ? dec.data : dec;
+      t2 = applyExtraToObj(t2, extra);
+      if (dec.data && typeof dec.data === 'object') dec.data = t2;
+      else dec = t2;
+      var enc = tryEncryptAes(dec);
+      if (enc) return enc;
     }
+    return text;
   }
 
   function isRegisterApi(url) {
     return /account\/(regist|register)/i.test(String(url || ''));
   }
 
+  function isLoginApi(url) {
+    return /account\/login/i.test(String(url || '')) && !/loginby/i.test(String(url || ''));
+  }
+
+  function patchHeadersWithExtra(headers, extra) {
+    if (!extra) return headers;
+    function set(h, k, v) {
+      if (!v) return;
+      if (typeof Headers !== 'undefined' && h instanceof Headers) {
+        h.set(k, v);
+      } else if (h && typeof h === 'object' && !Array.isArray(h)) {
+        h[k] = v;
+      }
+    }
+    if (!headers) headers = {};
+    set(headers, 'x-ch7-name', extra.name);
+    set(headers, 'x-ch7-email', extra.email);
+    set(headers, 'x-ch7-cpf', extra.cpf);
+    return headers;
+  }
+
+  // Validate on register submit click
+  document.addEventListener(
+    'click',
+    function (ev) {
+      try {
+        if (!isRegisterContext()) return;
+        var el = ev.target;
+        if (!el || !el.closest) return;
+        var btn = el.closest('button, .q-btn, [type="submit"]');
+        if (!btn) return;
+        var t = (btn.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!/Registrar|Cadastrar|Sign\s*up|Register/i.test(t)) return;
+        var extra = readExtra();
+        if (!validateExtra(extra)) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          try {
+            ev.stopImmediatePropagation();
+          } catch (e) {}
+        }
+      } catch (e) {}
+    },
+    true,
+  );
+
   // fetch
-  if (typeof window.fetch === 'function') {
+  if (typeof window.fetch === 'function' && !window.__ch7RegFetchV6) {
+    window.__ch7RegFetchV6 = 1;
     var _fetch = window.fetch;
     window.fetch = function (input, init) {
       try {
         var url = typeof input === 'string' ? input : input && input.url;
-        if (isRegisterApi(url) && init && init.body && typeof init.body === 'string') {
-          init = Object.assign({}, init, { body: enrichRegisterBody(init.body) });
+        if (isRegisterApi(url)) {
+          var extra = readExtra();
+          init = init || {};
+          if (init.body && typeof init.body === 'string') {
+            init = Object.assign({}, init, { body: enrichRegisterBody(init.body) });
+          }
+          init.headers = patchHeadersWithExtra(init.headers || {}, extra);
         }
       } catch (e) {}
       return _fetch.call(this, input, init);
@@ -383,24 +520,46 @@
   }
 
   // XHR
-  if (typeof XMLHttpRequest !== 'undefined') {
+  if (typeof XMLHttpRequest !== 'undefined' && !window.__ch7RegXhrV6) {
+    window.__ch7RegXhrV6 = 1;
     var _open = XMLHttpRequest.prototype.open;
     var _send = XMLHttpRequest.prototype.send;
+    var _set = XMLHttpRequest.prototype.setRequestHeader;
     XMLHttpRequest.prototype.open = function (method, url) {
-      this.__ch7RegUrl = url;
+      this.__ch7RegUrl = url == null ? '' : String(url);
       return _open.apply(this, arguments);
     };
     XMLHttpRequest.prototype.send = function (body) {
       try {
-        if (isRegisterApi(this.__ch7RegUrl) && typeof body === 'string') {
-          body = enrichRegisterBody(body);
+        if (isRegisterApi(this.__ch7RegUrl)) {
+          var extra = readExtra();
+          if (typeof body === 'string') body = enrichRegisterBody(body);
+          try {
+            if (extra.name) _set.call(this, 'x-ch7-name', extra.name);
+            if (extra.email) _set.call(this, 'x-ch7-email', extra.email);
+            if (extra.cpf) _set.call(this, 'x-ch7-cpf', extra.cpf);
+          } catch (e2) {}
         }
       } catch (e) {}
       return _send.call(this, body);
     };
   }
 
-  // observe SPA route/dialog changes (freeze-safe)
+  // Load CryptoJS if needed (for AES body enrich)
+  function ensureCrypto() {
+    if (window.CryptoJS) return;
+    if (document.getElementById('ch7-cryptojs')) return;
+    var s = document.createElement('script');
+    s.id = 'ch7-cryptojs';
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
+    s.async = true;
+    document.head.appendChild(s);
+  }
+  try {
+    ensureCrypto();
+  } catch (e) {}
+
+  // observe
   var t = null;
   var running = false;
   function schedule() {
@@ -409,15 +568,14 @@
       if (running) return;
       running = true;
       try {
-        // só trabalha se há dialog de login/registro
         if (!dialogRoot()) return;
         injectFields();
       } catch (e) {
-        /* ignore */
+        /* */
       } finally {
         running = false;
       }
-    }, 200);
+    }, 150);
   }
 
   if (document.readyState === 'loading') {
@@ -425,10 +583,8 @@
   } else {
     schedule();
   }
-
   window.addEventListener('hashchange', schedule);
   window.addEventListener('popstate', schedule);
-  // click só em botões Entrar/Registrar (não em todo documento)
   document.addEventListener(
     'click',
     function (ev) {
@@ -436,7 +592,7 @@
       if (!el || !el.closest) return;
       if (
         el.closest(
-          '.loginRegister, .login-dialog, .q-dialog, button, .q-btn, [class*="login"], [class*="Login"]',
+          '.loginRegister, .login-dialog, .q-dialog, button, .q-btn, [class*="login"], [class*="Login"], [class*="regist"]',
         )
       ) {
         schedule();
@@ -444,12 +600,21 @@
     },
     true,
   );
+  setTimeout(schedule, 400);
+  setTimeout(schedule, 1200);
+  setTimeout(schedule, 2500);
 
-  if (!window.__ch7RegFieldsMo) {
-    window.__ch7RegFieldsMo = 1;
+  if (!window.__ch7RegFieldsMoV6) {
+    window.__ch7RegFieldsMoV6 = 1;
     var mo = new MutationObserver(function () {
       if (dialogRoot()) schedule();
     });
     mo.observe(document.documentElement, { childList: true, subtree: true });
   }
+
+  window.__ch7RegisterFields = {
+    inject: injectFields,
+    read: readExtra,
+    isRegister: isRegisterContext,
+  };
 })();
