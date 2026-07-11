@@ -1,59 +1,93 @@
 /**
- * Cadastro: Nome Completo + E-mail + CPF (acima de telefone/senha).
- * Login: placeholder "Telefone ou E-mail" (sem campos extras).
- * Envia name/email/cpf no body (JSON ou AES) e headers x-ch7-*.
- * v6 — produção estável + CPF + login e-mail.
+ * Cadastro completo v8 — formulário próprio (não depende do patch frágil do SPA).
+ * Campos: Nome Completo, E-mail, Telefone, Senha.
+ * Login: adapta placeholder "Telefone ou E-mail".
  */
 (function () {
   'use strict';
-  if (window.__ch7RegisterFieldsV7) return;
-  window.__ch7RegisterFieldsV7 = 1;
-  window.__ch7RegisterFieldsV6 = 1;
+  if (window.__ch7RegisterFieldsV8) return;
+  window.__ch7RegisterFieldsV8 = 1;
 
-  var STYLE_ID = 'ch7-register-fields-style-v7';
-  var BOX_ID = 'ch7-register-extra-fields';
+  var STYLE_ID = 'ch7-reg-v8-style';
+  var FORM_ID = 'ch7-reg-full-form';
+  var EDGE =
+    window.__CH7_GOFUN_EDGE__ ||
+    'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/gofun';
+  var ANON =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
   var CRYPTO_KEY = '9EzYC7IZE1PTREu8';
-  /** último clique do usuário: 'login' | 'register' | null */
-  var lastAuthMode = null;
+  var lastMode = null; // 'login' | 'register'
+  var submitting = false;
 
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
     var s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent =
+      /* esconde inputs nativos só no cadastro quando nosso form está ativo */
+      '.login-dialog-container.ch7-reg-mode .form-section .q-field,' +
+      '.login-dialog-container.ch7-reg-mode .form-section .q-input,' +
+      '.login-dialog-container.ch7-reg-mode .form-section form > .q-field,' +
+      '.login-dialog.ch7-reg-mode .form-section .q-field{' +
+      'display:none!important;}' +
+      '.login-dialog-container.ch7-reg-mode .form-section > .q-btn,' +
+      '.login-dialog.ch7-reg-mode .form-section > .q-btn{' +
+      'display:none!important;}' +
       '#' +
-      BOX_ID +
-      '{display:flex!important;flex-direction:column;gap:12px;width:100%;margin:0 0 12px;box-sizing:border-box;z-index:5;position:relative;}' +
+      FORM_ID +
+      '{display:flex;flex-direction:column;gap:12px;width:100%;margin:8px 0 4px;box-sizing:border-box;position:relative;z-index:20;}' +
       '#' +
-      BOX_ID +
-      ' .ch7-reg-field{' +
-      'display:flex!important;align-items:center;gap:10px;width:100%;min-height:48px;' +
+      FORM_ID +
+      ' .ch7f{' +
+      'display:flex;align-items:center;gap:10px;width:100%;min-height:50px;' +
       'padding:0 14px;border-radius:12px;box-sizing:border-box;' +
-      'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);' +
-      'color:#e8e8e8;font:400 15px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;' +
-      '}' +
+      'background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);' +
+      'color:#f2f2f2;font:400 15px/1.25 system-ui,-apple-system,Segoe UI,sans-serif;' +
+      'transition:border-color .15s,box-shadow .15s;}' +
       '#' +
-      BOX_ID +
-      ' .ch7-reg-field:focus-within{border-color:rgba(246,207,135,0.45);box-shadow:0 0 0 1px rgba(246,207,135,0.15);}' +
+      FORM_ID +
+      ' .ch7f:focus-within{border-color:rgba(246,207,135,.55);box-shadow:0 0 0 2px rgba(246,207,135,.12);}' +
       '#' +
-      BOX_ID +
-      ' .ch7-reg-ico{flex:0 0 auto;opacity:.75;font-size:16px;line-height:1;}' +
+      FORM_ID +
+      ' .ch7f.err{border-color:rgba(255,120,120,.7);}' +
       '#' +
-      BOX_ID +
-      ' .ch7-reg-field input{' +
-      'flex:1 1 auto;min-width:0;border:0;outline:0;background:transparent;color:inherit;' +
-      'font:inherit;padding:12px 0;-webkit-appearance:none;appearance:none;' +
-      '}' +
+      FORM_ID +
+      ' .ch7f-ico{opacity:.8;font-size:16px;flex:0 0 auto;}' +
       '#' +
-      BOX_ID +
-      ' .ch7-reg-field input::placeholder{color:rgba(255,255,255,0.45);}' +
-      '.login-dialog-container.ch7-login-email-mode .country-code{display:none!important;}' +
+      FORM_ID +
+      ' .ch7f input{' +
+      'flex:1;min-width:0;border:0;outline:0;background:transparent;color:inherit;font:inherit;' +
+      'padding:13px 0;-webkit-appearance:none;appearance:none;}' +
       '#' +
-      BOX_ID +
-      ' .ch7-reg-err{color:#ff8a8a;font-size:12px;margin:-4px 0 0 4px;display:none;}' +
+      FORM_ID +
+      ' .ch7f input::placeholder{color:rgba(255,255,255,.42);}' +
       '#' +
-      BOX_ID +
-      ' .ch7-reg-err.show{display:block;}';
+      FORM_ID +
+      ' .ch7f-prefix{opacity:.75;font-size:13px;font-weight:600;color:#f6cf87;flex:0 0 auto;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-err{' +
+      'display:none;color:#ff9b9b;font-size:12.5px;line-height:1.35;padding:2px 4px;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-err.show{display:block;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-submit{' +
+      'width:100%;margin-top:4px;padding:14px 16px;border:0;border-radius:12px;cursor:pointer;' +
+      'font:800 16px/1.2 system-ui,sans-serif;color:#1a1208;' +
+      'background:linear-gradient(180deg,#ffe566 0%,#f0b429 55%,#d4920a 100%);' +
+      'box-shadow:0 6px 18px rgba(240,180,41,.28);letter-spacing:.02em;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-submit:disabled{opacity:.6;cursor:wait;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-submit:active:not(:disabled){transform:scale(.98);}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-hint{font-size:11.5px;color:rgba(255,255,255,.45);padding:0 4px;}' +
+      '.login-dialog-container.ch7-login-email-mode .country-code{display:none!important;}';
     document.head.appendChild(s);
   }
 
@@ -61,374 +95,191 @@
     return (
       document.querySelector('.login-dialog-container') ||
       document.querySelector('.login-dialog') ||
-      document.querySelector('.dialogBox.q-dialog') ||
       document.querySelector('.q-dialog .login-dialog-card') ||
       document.querySelector('.q-dialog') ||
       null
     );
   }
 
-  function isRegisterContext() {
-    var root = dialogRoot();
-    if (!root) return false;
-
-    // 0) clique recente do usuário (mais confiável no SPA)
-    if (lastAuthMode === 'register') return true;
-    if (lastAuthMode === 'login') return false;
-
-    // 1) aba ativa (várias classes SPA/Quasar)
-    var tabs = root.querySelectorAll(
-      '.tab, .tabs > *, [class*="tab"], .q-tab, .loginRegister span, .loginRegister div',
+  function formSection(root) {
+    return (
+      (root && root.querySelector('.form-section')) ||
+      (root && root.querySelector('form')) ||
+      root
     );
-    for (var ti = 0; ti < tabs.length; ti++) {
-      var tab = tabs[ti];
-      var tabTxt = (tab.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!/^(Login|Entrar|Registrar(-se)?|Cadastro|Register|Sign\s*up)$/i.test(tabTxt)) {
-        // texto curto com registrar
-        if (!/Registrar|Cadastro|Register/i.test(tabTxt) || tabTxt.length > 24) continue;
-      }
-      var cls = String(tab.className || '');
-      var active =
-        /\bactive\b|q-tab--active|selected|is-active/i.test(cls) ||
-        tab.getAttribute('aria-selected') === 'true' ||
-        tab.getAttribute('aria-current') === 'true';
-      if (active) {
-        if (/^Login$|^Entrar$/i.test(tabTxt)) return false;
-        if (/Registrar|Cadastro|Register|Sign\s*up/i.test(tabTxt)) return true;
-      }
-    }
+  }
 
-    var activeTab =
-      root.querySelector('.tab.active') ||
-      root.querySelector('.tabs .active') ||
-      root.querySelector('[class*="tab"].active') ||
-      root.querySelector('.q-tab--active');
-    if (activeTab) {
-      var at = (activeTab.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/^Login$|^Entrar$/i.test(at)) return false;
-      if (/Registrar|Cadastro|Sign\s*up|Register/i.test(at)) return true;
-    }
+  function modeFromUi(root) {
+    if (!root) return null;
+    if (lastMode) return lastMode;
 
-    // 2) botão submit principal
-    var buttons = root.querySelectorAll('button, .q-btn, [type="submit"]');
+    // submit button text
+    var buttons = root.querySelectorAll('button, .q-btn');
     for (var i = 0; i < buttons.length; i++) {
       var b = buttons[i];
-      if (b.offsetParent === null && b.getClientRects().length === 0) continue;
+      if (b.closest('#' + FORM_ID)) continue;
       var t = (b.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/^Login$|^Entrar$/i.test(t)) return false;
-      if (/^Registrar(-se)?$/i.test(t) || /Cadastrar/i.test(t)) return true;
+      if (/^Registrar(-se)?$/i.test(t) || /^Cadastrar$/i.test(t)) return 'register';
+      if (/^Login$|^Entrar$/i.test(t)) return 'login';
     }
 
-    // 3) placeholder telefone
-    var phone = findPhoneInput();
-    if (phone) {
-      var ph = String(phone.getAttribute('placeholder') || phone.placeholder || '');
-      if (/Novo\s*Telefone/i.test(ph)) return true;
-      if (/Telefone ou E-?mail/i.test(ph) || /^Telefone$/i.test(ph.trim())) return false;
+    // active tab
+    var active =
+      root.querySelector('.tab.active, .tabs .active, .q-tab--active, [class*="tab"].active') ||
+      null;
+    if (active) {
+      var at = (active.textContent || '').replace(/\s+/g, ' ').trim();
+      if (/Registrar|Cadastro|Register/i.test(at)) return 'register';
+      if (/Login|Entrar/i.test(at)) return 'login';
     }
 
-    // 4) texto visível "Nova Senha" no dialog = cadastro
-    var rootTxt = (root.innerText || root.textContent || '').slice(0, 400);
-    if (/Nova\s*Senha/i.test(rootTxt) && /Novo\s*Telefone|Registrar/i.test(rootTxt)) {
-      return true;
-    }
-
-    var href = String(location.href || '') + String(location.hash || '');
-    if (/regist|register|signup|sign-up/i.test(href)) return true;
-    return false;
-  }
-
-  function isLoginContext() {
-    var root = dialogRoot();
-    if (!root) return false;
-    if (isRegisterContext()) return false;
-    return !!findPasswordInput();
-  }
-
-  function findPhoneInput() {
-    var root = dialogRoot() || document;
+    // placeholder
     var inputs = root.querySelectorAll('input');
-    for (var i = 0; i < inputs.length; i++) {
-      var el = inputs[i];
-      if (el.closest('#' + BOX_ID)) continue;
-      if ((el.getAttribute('type') || '').toLowerCase() === 'password') continue;
-      var ph =
-        (el.getAttribute('placeholder') || '') +
-        ' ' +
-        (el.getAttribute('aria-label') || '');
-      var type = (el.getAttribute('type') || 'text').toLowerCase();
-      if (/telefone|phone|celular|mobile|e-?mail/i.test(ph)) return el;
-      if (type === 'tel') return el;
-      var parent = el.closest('label, .q-field, .q-input, div');
-      if (parent && /\+55/.test(parent.textContent || '')) return el;
+    for (var j = 0; j < inputs.length; j++) {
+      if (inputs[j].closest('#' + FORM_ID)) continue;
+      var ph = String(inputs[j].placeholder || '');
+      if (/Novo\s*Telefone/i.test(ph)) return 'register';
+      if (/Telefone ou E-?mail/i.test(ph)) return 'login';
     }
-    return null;
-  }
 
-  function findPasswordInput() {
-    var root = dialogRoot() || document;
-    var inputs = root.querySelectorAll('input[type="password"]');
-    for (var i = 0; i < inputs.length; i++) {
-      if (!inputs[i].closest('#' + BOX_ID)) return inputs[i];
-    }
-    return null;
+    // "Nova Senha" visible
+    var txt = (root.innerText || '').slice(0, 500);
+    if (/Nova\s*Senha/i.test(txt)) return 'register';
+    return 'login';
   }
 
   function onlyDigits(s) {
     return String(s || '').replace(/\D/g, '');
   }
 
-  function isValidCpf(cpf) {
-    var d = onlyDigits(cpf);
-    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
-    var s = 0;
-    for (var i = 0; i < 9; i++) s += Number(d[i]) * (10 - i);
-    var r = (s * 10) % 11;
-    if (r === 10) r = 0;
-    if (r !== Number(d[9])) return false;
-    s = 0;
-    for (var j = 0; j < 10; j++) s += Number(d[j]) * (11 - j);
-    r = (s * 10) % 11;
-    if (r === 10) r = 0;
-    return r === Number(d[10]);
+  function isEmail(s) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
   }
 
-  function maskCpf(v) {
-    var d = onlyDigits(v).slice(0, 11);
-    if (d.length <= 3) return d;
-    if (d.length <= 6) return d.slice(0, 3) + '.' + d.slice(3);
-    if (d.length <= 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
-    return (
-      d.slice(0, 3) +
-      '.' +
-      d.slice(3, 6) +
-      '.' +
-      d.slice(6, 9) +
-      '-' +
-      d.slice(9)
-    );
+  function isPhoneBR(s) {
+    var d = onlyDigits(s);
+    // 10 ou 11 dígitos (DDD + número), ou com 55
+    if (d.length === 12 || d.length === 13) {
+      if (d.indexOf('55') === 0) d = d.slice(2);
+    }
+    return d.length === 10 || d.length === 11;
   }
 
-  function makeField(opts) {
+  function normalizePhone(s) {
+    var d = onlyDigits(s);
+    if (d.indexOf('55') === 0 && (d.length === 12 || d.length === 13)) d = d.slice(2);
+    return d;
+  }
+
+  function strongPass(s) {
+    return String(s || '').length >= 6;
+  }
+
+  function field(icon, opts) {
     var wrap = document.createElement('div');
-    wrap.className = 'ch7-reg-field';
-    wrap.setAttribute('data-ch7-field', opts.key);
-
+    wrap.className = 'ch7f';
+    wrap.dataset.key = opts.key;
     var ico = document.createElement('span');
-    ico.className = 'ch7-reg-ico';
-    ico.setAttribute('aria-hidden', 'true');
-    ico.textContent = opts.icon;
-
+    ico.className = 'ch7f-ico';
+    ico.textContent = icon;
+    wrap.appendChild(ico);
+    if (opts.prefix) {
+      var pre = document.createElement('span');
+      pre.className = 'ch7f-prefix';
+      pre.textContent = opts.prefix;
+      wrap.appendChild(pre);
+    }
     var input = document.createElement('input');
+    input.id = 'ch7f-' + opts.key;
+    input.name = opts.key;
     input.type = opts.type || 'text';
     input.placeholder = opts.placeholder;
     input.autocomplete = opts.autocomplete || 'off';
-    input.name = opts.name;
-    input.id = 'ch7-reg-' + opts.key;
     input.setAttribute('aria-label', opts.placeholder);
     if (opts.inputmode) input.setAttribute('inputmode', opts.inputmode);
-    if (opts.maxlength) input.setAttribute('maxlength', String(opts.maxlength));
-
-    wrap.appendChild(ico);
+    if (opts.maxlength) input.maxLength = opts.maxlength;
     wrap.appendChild(input);
     return { wrap: wrap, input: input };
   }
 
-  function removeExtraFields() {
-    var old = document.getElementById(BOX_ID);
-    if (old) old.remove();
-  }
-
-  function adaptLoginIdentityField() {
-    var root = dialogRoot();
-    var phone = findPhoneInput();
-    if (!phone || !isLoginContext()) {
-      if (root) root.classList.remove('ch7-login-email-mode');
-      return;
-    }
-    ensureStyle();
-    phone.removeAttribute('maxlength');
-    phone.setAttribute('maxlength', '80');
-    phone.setAttribute('type', 'text');
-    phone.setAttribute('inputmode', 'email');
-    phone.setAttribute('autocomplete', 'username');
-    phone.placeholder = 'Telefone ou E-mail';
-    phone.setAttribute('aria-label', 'Telefone ou E-mail');
-
-    var val = String(phone.value || '');
-    if (root) {
-      if (/@/.test(val)) root.classList.add('ch7-login-email-mode');
-      else root.classList.remove('ch7-login-email-mode');
-    }
-    if (!phone.__ch7LoginBound) {
-      phone.__ch7LoginBound = true;
-      phone.addEventListener('input', function () {
-        var r = dialogRoot();
-        var v = String(phone.value || '');
-        if (r) {
-          if (/@/.test(v)) r.classList.add('ch7-login-email-mode');
-          else r.classList.remove('ch7-login-email-mode');
-        }
-      });
-    }
-  }
-
-  function injectFields() {
-    var reg = isRegisterContext();
-    if (!reg) {
-      removeExtraFields();
-      try {
-        adaptLoginIdentityField();
-      } catch (e) {}
-      return;
-    }
-
-    ensureStyle();
-    // se já existe, garante que continua no DOM (SPA pode remountar)
-    var existing = document.getElementById(BOX_ID);
-    if (existing && document.body.contains(existing)) return;
-    if (existing) {
-      try {
-        existing.remove();
-      } catch (e) {}
-    }
-
-    var phone = findPhoneInput();
-    var pass = findPasswordInput();
-    if (!phone && !pass) return;
-
-    var anchor = phone || pass;
-    var container =
-      anchor.closest('.q-card__section, .q-dialog__inner, form, .q-page, .q-card, .form-section') ||
-      anchor.parentElement;
-    if (!container) return;
-
-    var phoneRow =
-      (phone && (phone.closest('.q-field') || phone.closest('label') || phone.parentElement)) ||
-      (pass && (pass.closest('.q-field') || pass.parentElement));
-
-    var box = document.createElement('div');
-    box.id = BOX_ID;
-
-    var nameF = makeField({
-      key: 'name',
-      name: 'ch7_name',
-      icon: '👤',
-      placeholder: 'Nome Completo',
-      autocomplete: 'name',
-      type: 'text',
+  function setErr(el, msg) {
+    var box = document.getElementById(FORM_ID);
+    if (!box) return;
+    var err = box.querySelector('.ch7-err');
+    if (!err) return;
+    // clear field errs
+    box.querySelectorAll('.ch7f.err').forEach(function (f) {
+      f.classList.remove('err');
     });
-    var emailF = makeField({
-      key: 'email',
-      name: 'ch7_email',
-      icon: '✉',
-      placeholder: 'E-mail',
-      autocomplete: 'email',
-      type: 'email',
-      inputmode: 'email',
-    });
-    var cpfF = makeField({
-      key: 'cpf',
-      name: 'ch7_cpf',
-      icon: '🪪',
-      placeholder: 'CPF',
-      autocomplete: 'off',
-      type: 'text',
-      inputmode: 'numeric',
-      maxlength: 14,
-    });
-    cpfF.input.addEventListener('input', function () {
-      var pos = cpfF.input.selectionStart;
-      var before = cpfF.input.value;
-      cpfF.input.value = maskCpf(before);
-      try {
-        cpfF.input.setSelectionRange(cpfF.input.value.length, cpfF.input.value.length);
-      } catch (e) {}
-    });
-
-    var err = document.createElement('div');
-    err.className = 'ch7-reg-err';
-    err.id = 'ch7-reg-err';
-
-    box.appendChild(nameF.wrap);
-    box.appendChild(emailF.wrap);
-    box.appendChild(cpfF.wrap);
-    box.appendChild(err);
-
-    if (phoneRow && phoneRow.parentElement) {
-      phoneRow.parentElement.insertBefore(box, phoneRow);
+    if (el) el.classList.add('err');
+    if (msg) {
+      err.textContent = msg;
+      err.classList.add('show');
     } else {
-      container.insertBefore(box, container.firstChild);
-    }
-
-    // adapta placeholder do telefone no cadastro
-    if (phone) {
-      phone.placeholder = phone.placeholder || 'Novo Telefone';
+      err.textContent = '';
+      err.classList.remove('show');
     }
   }
 
-  function readExtra() {
-    var nameEl = document.getElementById('ch7-reg-name');
-    var emailEl = document.getElementById('ch7-reg-email');
-    var cpfEl = document.getElementById('ch7-reg-cpf');
+  function readForm() {
     return {
-      name: nameEl ? String(nameEl.value || '').trim() : '',
-      email: emailEl ? String(emailEl.value || '').trim().toLowerCase() : '',
-      cpf: cpfEl ? onlyDigits(cpfEl.value) : '',
+      name: (document.getElementById('ch7f-name') || {}).value || '',
+      email: String((document.getElementById('ch7f-email') || {}).value || '')
+        .trim()
+        .toLowerCase(),
+      phone: (document.getElementById('ch7f-phone') || {}).value || '',
+      pass: (document.getElementById('ch7f-pass') || {}).value || '',
     };
   }
 
-  function showRegError(msg) {
-    var el = document.getElementById('ch7-reg-err');
-    if (!el) return;
-    if (!msg) {
-      el.classList.remove('show');
-      el.textContent = '';
-      return;
-    }
-    el.textContent = msg;
-    el.classList.add('show');
-  }
-
-  function validateExtra(extra) {
-    if (!extra.name || extra.name.length < 3) {
-      showRegError('Informe o nome completo.');
+  function validate(data) {
+    var nameEl = document.getElementById('ch7f-name')?.parentElement;
+    var emailEl = document.getElementById('ch7f-email')?.parentElement;
+    var phoneEl = document.getElementById('ch7f-phone')?.parentElement;
+    var passEl = document.getElementById('ch7f-pass')?.parentElement;
+    var name = String(data.name || '').trim();
+    if (name.length < 3) {
+      setErr(nameEl, 'Informe o nome completo.');
       return false;
     }
-    if (!extra.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extra.email)) {
-      showRegError('Informe um e-mail válido.');
+    if (!isEmail(data.email)) {
+      setErr(emailEl, 'Informe um e-mail válido.');
       return false;
     }
-    if (!extra.cpf || !isValidCpf(extra.cpf)) {
-      showRegError('Informe um CPF válido.');
+    if (!isPhoneBR(data.phone)) {
+      setErr(phoneEl, 'Informe o telefone com DDD (10 ou 11 dígitos).');
       return false;
     }
-    showRegError('');
+    if (!strongPass(data.pass)) {
+      setErr(passEl, 'A senha deve ter no mínimo 6 caracteres.');
+      return false;
+    }
+    setErr(null, '');
     return true;
   }
 
-  // ── AES helpers (mesmo key do SPA) ──
-  function tryDecryptAes(text) {
-    var raw = String(text || '').trim();
-    if (!raw || raw.charAt(0) === '{' || raw.charAt(0) === '[') return null;
+  function toast(msg, ok) {
     try {
-      var C = window.CryptoJS;
-      if (!C) return null;
-      var key = C.enc.Utf8.parse(CRYPTO_KEY);
-      var params = C.lib.CipherParams.create({
-        ciphertext: C.enc.Base64.parse(raw),
-      });
-      var dec = C.AES.decrypt(params, key, {
-        mode: C.mode.ECB,
-        padding: C.pad.Pkcs7,
-      });
-      var plain = dec.toString(C.enc.Utf8);
-      if (plain && plain.charAt(0) === '{') return JSON.parse(plain);
+      // Quasar notify se existir
+      var app = document.querySelector('#q-app') && document.querySelector('#q-app').__vue_app__;
+      var q =
+        app &&
+        app.config &&
+        app.config.globalProperties &&
+        app.config.globalProperties.$q;
+      if (q && q.notify) {
+        q.notify({
+          message: msg,
+          color: ok ? 'positive' : 'negative',
+          position: 'top',
+        });
+        return;
+      }
     } catch (e) {}
-    return null;
+    alert(msg);
   }
 
-  function tryEncryptAes(obj) {
+  function aesEncrypt(obj) {
     try {
       var C = window.CryptoJS;
       if (!C) return null;
@@ -444,183 +295,370 @@
     }
   }
 
-  function applyExtraToObj(target, extra) {
-    if (!target || typeof target !== 'object') target = {};
-    if (extra.name) {
-      target.name = extra.name;
-      target.Name = extra.name;
-      target.nick = target.nick || extra.name;
-      target.Nick = target.Nick || extra.name;
-      target.realName = extra.name;
-    }
-    if (extra.email) {
-      target.email = extra.email;
-      target.Email = extra.email;
-      target.mail = extra.email;
-    }
-    if (extra.cpf) {
-      target.cpf = extra.cpf;
-      target.CPF = extra.cpf;
-      target.Cpf = extra.cpf;
-    }
-    return target;
-  }
-
-  function enrichRegisterBody(text) {
-    var extra = readExtra();
-    if (!extra.name && !extra.email && !extra.cpf) return text;
-    // plain JSON
+  function aesDecrypt(text) {
     try {
-      if (text && (text.charAt(0) === '{' || text.charAt(0) === '[')) {
-        var body = JSON.parse(text);
-        if (!body || typeof body !== 'object') body = {};
-        var target = body.data && typeof body.data === 'object' ? body.data : body;
-        target = applyExtraToObj(target, extra);
-        if (body.data && typeof body.data === 'object') body.data = target;
-        else body = target;
-        return JSON.stringify(body);
-      }
+      var C = window.CryptoJS;
+      if (!C || !text || text[0] === '{') return null;
+      var key = C.enc.Utf8.parse(CRYPTO_KEY);
+      var params = C.lib.CipherParams.create({
+        ciphertext: C.enc.Base64.parse(text),
+      });
+      var dec = C.AES.decrypt(params, key, {
+        mode: C.mode.ECB,
+        padding: C.pad.Pkcs7,
+      });
+      var plain = dec.toString(C.enc.Utf8);
+      if (plain && plain[0] === '{') return JSON.parse(plain);
     } catch (e) {}
-    // AES ciphertext
-    var dec = tryDecryptAes(text);
-    if (dec && typeof dec === 'object') {
-      var t2 = dec.data && typeof dec.data === 'object' ? dec.data : dec;
-      t2 = applyExtraToObj(t2, extra);
-      if (dec.data && typeof dec.data === 'object') dec.data = t2;
-      else dec = t2;
-      var enc = tryEncryptAes(dec);
-      if (enc) return enc;
+    return null;
+  }
+
+  async function apiRegist(data) {
+    var phone = normalizePhone(data.phone);
+    var payload = {
+      phone: phone,
+      pass: data.pass,
+      password: data.pass,
+      name: String(data.name).trim(),
+      email: data.email,
+      nick: String(data.name).trim(),
+    };
+    // prefer plain JSON (edge aceita x-plain-json)
+    var res = await fetch(EDGE + '/v2/account/regist', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'x-plain-json': '1',
+        apikey: ANON,
+        Authorization: 'Bearer ' + ANON,
+        'x-ch7-name': payload.name,
+        'x-ch7-email': payload.email,
+      },
+      body: JSON.stringify(payload),
+    });
+    var text = await res.text();
+    var j;
+    try {
+      j = JSON.parse(text);
+    } catch (e) {
+      j = aesDecrypt(text) || { code: 500, msg: 'Resposta inválida' };
     }
-    return text;
+    return j;
   }
 
-  function isRegisterApi(url) {
-    return /account\/(regist|register)/i.test(String(url || ''));
+  function setAuthStore(loginData) {
+    try {
+      var tok =
+        loginData.token ||
+        loginData.Token ||
+        (loginData.userInfoData && loginData.userInfoData.token) ||
+        '';
+      var info = loginData.userInfoData || loginData.UserInfoData || {};
+      var app = document.querySelector('#q-app') && document.querySelector('#q-app').__vue_app__;
+      var pinia =
+        app &&
+        app.config &&
+        app.config.globalProperties &&
+        app.config.globalProperties.$pinia;
+      if (pinia && pinia._s) {
+        pinia._s.forEach(function (store) {
+          try {
+            if (typeof store.setUserData === 'function') {
+              store.setUserData({
+                token: tok,
+                Token: tok,
+                uid: info.uid || info.id,
+                ...info,
+              });
+            }
+            if (store.$id === 'auth' || store.token !== undefined) {
+              if (store.token !== undefined) store.token = tok;
+              if (store.isAuthenticated !== undefined) store.isAuthenticated = true;
+            }
+          } catch (e) {}
+        });
+      }
+      // localStorage backup
+      try {
+        localStorage.setItem(
+          'ch7_auth',
+          JSON.stringify({ token: tok, uid: info.uid || info.id, at: Date.now() }),
+        );
+      } catch (e) {}
+    } catch (e) {}
   }
 
-  function isLoginApi(url) {
-    return /account\/login/i.test(String(url || '')) && !/loginby/i.test(String(url || ''));
+  function closeDialog() {
+    try {
+      var close =
+        document.querySelector('.login-dialog-container .q-dialog__close') ||
+        document.querySelector('.login-dialog .close') ||
+        document.querySelector('.q-dialog [aria-label="Close"]') ||
+        document.querySelector('.login-dialog-container .q-icon');
+      // click backdrop
+      var backdrop = document.querySelector('.q-dialog__backdrop');
+      if (backdrop) backdrop.click();
+    } catch (e) {}
+    // hard hide
+    try {
+      var root = dialogRoot();
+      if (root) {
+        var dlg = root.closest('.q-dialog') || root;
+        dlg.style.display = 'none';
+      }
+    } catch (e2) {}
   }
 
-  function patchHeadersWithExtra(headers, extra) {
-    if (!extra) return headers;
-    function set(h, k, v) {
-      if (!v) return;
-      if (typeof Headers !== 'undefined' && h instanceof Headers) {
-        h.set(k, v);
-      } else if (h && typeof h === 'object' && !Array.isArray(h)) {
-        h[k] = v;
+  async function onSubmit(ev) {
+    if (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+    if (submitting) return;
+    var data = readForm();
+    if (!validate(data)) return;
+    submitting = true;
+    var btn = document.getElementById('ch7f-submit');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Registrando…';
+    }
+    try {
+      var j = await apiRegist(data);
+      if (j && j.code === 0) {
+        setAuthStore(j.data || j);
+        toast('Registro bem-sucedido!', true);
+        closeDialog();
+        setTimeout(function () {
+          location.hash = '#/';
+          try {
+            location.reload();
+          } catch (e) {}
+        }, 400);
+        return;
+      }
+      var msg = (j && j.msg) || 'Não foi possível registrar. Tente de novo.';
+      if (/already exists|já cadastrad|30103/i.test(msg)) {
+        msg = 'Telefone ou e-mail já cadastrado. Faça login.';
+      }
+      setErr(null, msg);
+      toast(msg, false);
+    } catch (e) {
+      setErr(null, 'Erro de conexão. Tente novamente.');
+      toast('Erro de conexão. Tente novamente.', false);
+    } finally {
+      submitting = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Registrar-se';
       }
     }
-    if (!headers) headers = {};
-    set(headers, 'x-ch7-name', extra.name);
-    set(headers, 'x-ch7-email', extra.email);
-    set(headers, 'x-ch7-cpf', extra.cpf);
-    return headers;
   }
 
-  // Validate on register submit click
-  document.addEventListener(
-    'click',
-    function (ev) {
-      try {
-        if (!isRegisterContext()) return;
-        var el = ev.target;
-        if (!el || !el.closest) return;
-        var btn = el.closest('button, .q-btn, [type="submit"]');
-        if (!btn) return;
-        var t = (btn.textContent || '').replace(/\s+/g, ' ').trim();
-        if (!/Registrar|Cadastrar|Sign\s*up|Register/i.test(t)) return;
-        var extra = readExtra();
-        if (!validateExtra(extra)) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          try {
-            ev.stopImmediatePropagation();
-          } catch (e) {}
-        }
-      } catch (e) {}
-    },
-    true,
-  );
+  function buildForm() {
+    var form = document.createElement('div');
+    form.id = FORM_ID;
+    form.setAttribute('role', 'form');
+    form.setAttribute('aria-label', 'Cadastro');
 
-  // fetch
-  if (typeof window.fetch === 'function' && !window.__ch7RegFetchV6) {
-    window.__ch7RegFetchV6 = 1;
-    var _fetch = window.fetch;
-    window.fetch = function (input, init) {
-      try {
-        var url = typeof input === 'string' ? input : input && input.url;
-        if (isRegisterApi(url)) {
-          var extra = readExtra();
-          init = init || {};
-          if (init.body && typeof init.body === 'string') {
-            init = Object.assign({}, init, { body: enrichRegisterBody(init.body) });
-          }
-          init.headers = patchHeadersWithExtra(init.headers || {}, extra);
-        }
-      } catch (e) {}
-      return _fetch.call(this, input, init);
-    };
+    var nameF = field('👤', {
+      key: 'name',
+      placeholder: 'Nome Completo',
+      autocomplete: 'name',
+    });
+    var emailF = field('✉', {
+      key: 'email',
+      placeholder: 'E-mail',
+      autocomplete: 'email',
+      type: 'email',
+      inputmode: 'email',
+    });
+    var phoneF = field('📱', {
+      key: 'phone',
+      placeholder: 'Telefone com DDD',
+      autocomplete: 'tel',
+      type: 'tel',
+      inputmode: 'tel',
+      maxlength: 15,
+      prefix: '+55',
+    });
+    var passF = field('🔒', {
+      key: 'pass',
+      placeholder: 'Senha (mín. 6 caracteres)',
+      autocomplete: 'new-password',
+      type: 'password',
+    });
+
+    phoneF.input.addEventListener('input', function () {
+      var d = onlyDigits(phoneF.input.value).slice(0, 11);
+      // format (11) 99999-9999 light
+      if (d.length > 6) {
+        phoneF.input.value =
+          '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + (d.length > 7 ? '-' + d.slice(7) : '');
+      } else if (d.length > 2) {
+        phoneF.input.value = '(' + d.slice(0, 2) + ') ' + d.slice(2);
+      } else {
+        phoneF.input.value = d;
+      }
+    });
+
+    var err = document.createElement('div');
+    err.className = 'ch7-err';
+    err.setAttribute('role', 'alert');
+
+    var hint = document.createElement('div');
+    hint.className = 'ch7-hint';
+    hint.textContent = 'Preencha todos os campos para criar sua conta.';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ch7-submit';
+    btn.id = 'ch7f-submit';
+    btn.textContent = 'Registrar-se';
+    btn.addEventListener('click', onSubmit);
+
+    // enter key
+    [nameF, emailF, phoneF, passF].forEach(function (f) {
+      f.input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') onSubmit(e);
+      });
+    });
+
+    form.appendChild(nameF.wrap);
+    form.appendChild(emailF.wrap);
+    form.appendChild(phoneF.wrap);
+    form.appendChild(passF.wrap);
+    form.appendChild(err);
+    form.appendChild(hint);
+    form.appendChild(btn);
+    return form;
   }
 
-  // XHR
-  if (typeof XMLHttpRequest !== 'undefined' && !window.__ch7RegXhrV6) {
-    window.__ch7RegXhrV6 = 1;
-    var _open = XMLHttpRequest.prototype.open;
-    var _send = XMLHttpRequest.prototype.send;
-    var _set = XMLHttpRequest.prototype.setRequestHeader;
-    XMLHttpRequest.prototype.open = function (method, url) {
-      this.__ch7RegUrl = url == null ? '' : String(url);
-      return _open.apply(this, arguments);
-    };
-    XMLHttpRequest.prototype.send = function (body) {
+  function mountRegisterForm() {
+    ensureStyle();
+    var root = dialogRoot();
+    if (!root) return;
+    root.classList.add('ch7-reg-mode');
+    root.classList.remove('ch7-login-email-mode');
+
+    var section = formSection(root);
+    if (!section) return;
+
+    var existing = document.getElementById(FORM_ID);
+    if (existing && section.contains(existing)) return;
+    if (existing) {
       try {
-        if (isRegisterApi(this.__ch7RegUrl)) {
-          var extra = readExtra();
-          if (typeof body === 'string') body = enrichRegisterBody(body);
-          try {
-            if (extra.name) _set.call(this, 'x-ch7-name', extra.name);
-            if (extra.email) _set.call(this, 'x-ch7-email', extra.email);
-            if (extra.cpf) _set.call(this, 'x-ch7-cpf', extra.cpf);
-          } catch (e2) {}
-        }
+        existing.remove();
       } catch (e) {}
-      return _send.call(this, body);
-    };
+    }
+
+    var form = buildForm();
+    // inserir no topo do form-section
+    if (section.firstChild) section.insertBefore(form, section.firstChild);
+    else section.appendChild(form);
   }
 
-  // Load CryptoJS if needed (for AES body enrich)
+  function unmountRegisterForm() {
+    var root = dialogRoot();
+    if (root) root.classList.remove('ch7-reg-mode');
+    var existing = document.getElementById(FORM_ID);
+    if (existing) {
+      try {
+        existing.remove();
+      } catch (e) {}
+    }
+  }
+
+  function adaptLogin() {
+    var root = dialogRoot();
+    if (!root) return;
+    root.classList.remove('ch7-reg-mode');
+    var inputs = root.querySelectorAll('input');
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      if (el.closest('#' + FORM_ID)) continue;
+      if ((el.type || '').toLowerCase() === 'password') continue;
+      var ph = String(el.placeholder || '');
+      if (/telefone|phone|e-?mail|novo/i.test(ph) || el.type === 'tel') {
+        el.placeholder = 'Telefone ou E-mail';
+        el.setAttribute('aria-label', 'Telefone ou E-mail');
+        el.setAttribute('maxlength', '80');
+        el.setAttribute('type', 'text');
+        el.setAttribute('inputmode', 'email');
+        if (!el.__ch7LoginBound) {
+          el.__ch7LoginBound = 1;
+          el.addEventListener('input', function () {
+            var r = dialogRoot();
+            if (!r) return;
+            if (/@/.test(el.value || '')) r.classList.add('ch7-login-email-mode');
+            else r.classList.remove('ch7-login-email-mode');
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  function sync() {
+    var root = dialogRoot();
+    if (!root) {
+      unmountRegisterForm();
+      return;
+    }
+    var mode = modeFromUi(root);
+    if (mode === 'register') {
+      mountRegisterForm();
+    } else {
+      unmountRegisterForm();
+      adaptLogin();
+    }
+  }
+
+  // CryptoJS for AES fallback (login path may need later)
   function ensureCrypto() {
-    if (window.CryptoJS) return;
-    if (document.getElementById('ch7-cryptojs')) return;
+    if (window.CryptoJS || document.getElementById('ch7-cryptojs')) return;
     var s = document.createElement('script');
     s.id = 'ch7-cryptojs';
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
     s.async = true;
     document.head.appendChild(s);
   }
-  try {
-    ensureCrypto();
-  } catch (e) {}
+  ensureCrypto();
 
-  // observe
-  var t = null;
-  var running = false;
-  function schedule() {
-    if (t) clearTimeout(t);
-    t = setTimeout(function () {
-      if (running) return;
-      running = true;
-      try {
-        if (!dialogRoot()) return;
-        injectFields();
-      } catch (e) {
-        /* */
-      } finally {
-        running = false;
+  // click tabs
+  document.addEventListener(
+    'click',
+    function (ev) {
+      var el = ev.target;
+      if (!el || !el.closest) return;
+      var node = el.closest('button, .q-btn, .tab, .q-tab, span, div, a');
+      if (!node) return;
+      var t = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (/^(Login|Entrar)$/i.test(t)) {
+        lastMode = 'login';
+        setTimeout(sync, 50);
+        setTimeout(sync, 200);
       }
-    }, 150);
+      if (/^(Registrar(-se)?|Cadastro|Register|Cadastrar)$/i.test(t)) {
+        lastMode = 'register';
+        setTimeout(sync, 50);
+        setTimeout(sync, 150);
+        setTimeout(sync, 400);
+      }
+      // open login dialog
+      if (/Entrar|Login|Registrar|Cadastr/i.test(t)) {
+        setTimeout(sync, 100);
+        setTimeout(sync, 350);
+      }
+    },
+    true,
+  );
+
+  var tmr = null;
+  function schedule() {
+    clearTimeout(tmr);
+    tmr = setTimeout(sync, 80);
   }
 
   if (document.readyState === 'loading') {
@@ -629,50 +667,15 @@
     schedule();
   }
   window.addEventListener('hashchange', schedule);
-  window.addEventListener('popstate', schedule);
-  document.addEventListener(
-    'click',
-    function (ev) {
-      var el = ev.target;
-      if (!el || !el.closest) return;
-      // detecta clique nas abas Login / Registrar
-      var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      var clickable = el.closest(
-        'button, .q-btn, .tab, .q-tab, [class*="tab"], span, div, a',
-      );
-      if (clickable) {
-        var ct = (clickable.textContent || '').replace(/\s+/g, ' ').trim();
-        if (/^(Login|Entrar)$/i.test(ct) || /^Login$/i.test(t)) lastAuthMode = 'login';
-        if (
-          /^(Registrar(-se)?|Cadastro|Register|Sign\s*up|Cadastrar)$/i.test(ct) ||
-          /Registrar/i.test(t)
-        ) {
-          lastAuthMode = 'register';
-        }
-      }
-      if (
-        el.closest(
-          '.loginRegister, .login-dialog, .q-dialog, button, .q-btn, [class*="login"], [class*="Login"], [class*="regist"]',
-        )
-      ) {
-        schedule();
-        setTimeout(schedule, 80);
-        setTimeout(schedule, 250);
-        setTimeout(schedule, 600);
-      }
-    },
-    true,
-  );
-  setTimeout(schedule, 200);
-  setTimeout(schedule, 600);
-  setTimeout(schedule, 1200);
-  setTimeout(schedule, 2500);
+  setTimeout(schedule, 300);
+  setTimeout(schedule, 800);
+  setTimeout(schedule, 1600);
   setInterval(function () {
-    if (dialogRoot()) schedule();
-  }, 1500);
+    if (dialogRoot()) sync();
+  }, 1200);
 
-  if (!window.__ch7RegFieldsMoV6) {
-    window.__ch7RegFieldsMoV6 = 1;
+  if (!window.__ch7RegMoV8) {
+    window.__ch7RegMoV8 = 1;
     var mo = new MutationObserver(function () {
       if (dialogRoot()) schedule();
     });
@@ -680,8 +683,9 @@
   }
 
   window.__ch7RegisterFields = {
-    inject: injectFields,
-    read: readExtra,
-    isRegister: isRegisterContext,
+    sync: sync,
+    mode: function () {
+      return lastMode || modeFromUi(dialogRoot());
+    },
   };
 })();
