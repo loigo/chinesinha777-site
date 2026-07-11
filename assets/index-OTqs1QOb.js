@@ -1,0 +1,1 @@
+import{d as a,e,f as s,s as r,t,A as d}from"./index-Bxx4mSPk.js";const n=a({name:"WithdrawRecordPageWrapper",__name:"index",setup(a){const{WithdrawRecordPage:n}=d();return(a,d)=>(s(),e("div",null,[r(t(n))]))}});export{n as default};

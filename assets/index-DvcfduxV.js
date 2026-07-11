@@ -1,0 +1,1 @@
+import{d as e,e as a,f as s,s as t,t as n,A as i}from"./index-Bxx4mSPk.js";const d=e({name:"ActivitiesPage",__name:"index",setup(e){const{InvitedRechargePage:d}=i();return(e,i)=>(s(),a("div",null,[t(n(d))]))}});export{d as default};

@@ -1,0 +1,1 @@
+import{b8 as e,ah as a,c as o}from"./index-Bxx4mSPk.js";const s=(s,r)=>({isOpen:o({get:()=>s.modelValue,set(e){r("update:modelValue",e)}}),Type:o((()=>s.drawSevenDayBoxRewardInfo?.Discount?1:2)),VITE_ASSETS_URL:a,serverToNumber:e});export{s as u};

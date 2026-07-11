@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200" fill="none">
+  <defs>
+    <linearGradient id="wood2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c47a28"/>
+      <stop offset="100%" stop-color="#7a3e10"/>
+    </linearGradient>
+    <linearGradient id="metal2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe566"/>
+      <stop offset="100%" stop-color="#c67c0a"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ffd54a" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#ffe566" stop-opacity=".9"/>
+    </linearGradient>
+    <filter id="s2" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000" flood-opacity=".4"/>
+    </filter>
+  </defs>
+  <ellipse cx="110" cy="188" rx="70" ry="10" fill="#000" opacity=".3"/>
+  <!-- glow -->
+  <ellipse cx="110" cy="90" rx="55" ry="40" fill="url(#glow)"/>
+  <!-- body open -->
+  <rect x="30" y="90" width="160" height="90" rx="10" fill="url(#wood2)" filter="url(#s2)"/>
+  <rect x="30" y="115" width="160" height="14" fill="url(#metal2)"/>
+  <!-- coins inside -->
+  <circle cx="90" cy="105" r="12" fill="#ffe566"/>
+  <circle cx="115" cy="100" r="14" fill="#f0b429"/>
+  <circle cx="135" cy="108" r="11" fill="#ffe566"/>
+  <circle cx="105" cy="112" r="10" fill="#e8a820"/>
+  <!-- lid open back -->
+  <path d="M35 95c-4-40 28-70 75-70s79 30 75 70" fill="#e09940" opacity=".95"/>
+  <path d="M45 95c0-30 25-52 65-52s65 22 65 52" stroke="#ffe566" stroke-width="3" opacity=".4"/>
+  <!-- sparkles -->
+  <circle cx="60" cy="40" r="3" fill="#fff"/>
+  <circle cx="160" cy="35" r="4" fill="#ffe566"/>
+  <circle cx="110" cy="28" r="2.5" fill="#fff"/>
+</svg>

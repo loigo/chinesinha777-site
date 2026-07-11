@@ -1,0 +1,1 @@
+import{d as a,e,f as s,s as r,t,A as i}from"./index-Bxx4mSPk.js";const n=a({name:"DailyFirstChargePageWrapper",__name:"index",setup(a){const{DailyFirstChargePage:n}=i();return(a,i)=>(s(),e("div",null,[r(t(n))]))}});export{n as default};

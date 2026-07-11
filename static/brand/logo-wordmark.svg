@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFBE6"/>
+      <stop offset="20%" stop-color="#FFE566"/>
+      <stop offset="45%" stop-color="#F6CF87"/>
+      <stop offset="70%" stop-color="#D4A017"/>
+      <stop offset="100%" stop-color="#8B5A00"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFB0B0"/>
+      <stop offset="40%" stop-color="#FF3B3B"/>
+      <stop offset="100%" stop-color="#6B0000"/>
+    </linearGradient>
+    <filter id="glow" x="-10%" y="-45%" width="120%" height="190%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="b"/>
+      <feFlood flood-color="#F6CF87" flood-opacity="0.6" result="c"/>
+      <feComposite in="c" in2="b" operator="in" result="g"/>
+      <feMerge>
+        <feMergeNode in="g"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#glow)">
+    <text x="600" y="178" text-anchor="middle"
+      font-family="Arial Black, Impact, Segoe UI Black, Helvetica, sans-serif"
+      font-size="128" font-weight="900" letter-spacing="-1.5"
+      fill="#1a0505" opacity="0.9">chinesinha777</text>
+    <text x="600" y="172" text-anchor="middle"
+      font-family="Arial Black, Impact, Segoe UI Black, Helvetica, sans-serif"
+      font-size="128" font-weight="900" letter-spacing="-1.5"
+      fill="none" stroke="#6B0A0A" stroke-width="11" stroke-linejoin="round">chinesinha777</text>
+    <text x="600" y="168" text-anchor="middle"
+      font-family="Arial Black, Impact, Segoe UI Black, Helvetica, sans-serif"
+      font-size="128" font-weight="900" letter-spacing="-1.5"
+      fill="url(#gold)">chinesinha777</text>
+  </g>
+  <text x="600" y="168" text-anchor="middle"
+    font-family="Arial Black, Impact, Segoe UI Black, Helvetica, sans-serif"
+    font-size="128" font-weight="900" letter-spacing="-1.5">
+    <tspan fill="transparent">chinesinha</tspan><tspan fill="url(#red)">777</tspan>
+  </text>
+</svg>

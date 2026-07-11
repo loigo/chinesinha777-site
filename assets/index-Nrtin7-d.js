@@ -1,0 +1,1 @@
+import{d as a,e as s,f as e,s as n,t,A as d}from"./index-Bxx4mSPk.js";const o=a({name:"Cashback7Index",__name:"index",setup(a){const{Cashback7Page:o}=d();return(a,d)=>(e(),s("div",null,[n(t(o))]))}});export{o as default};

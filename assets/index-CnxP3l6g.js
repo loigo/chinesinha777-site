@@ -1,0 +1,1 @@
+import{d as s,p as a,f as e,z as n,t,A as i}from"./index-Bxx4mSPk.js";const o=s({name:"FishingPage",__name:"index",setup(s){const{FishingPage:o}=i();return(s,i)=>(e(),a(n(t(o))))}});export{o as default};

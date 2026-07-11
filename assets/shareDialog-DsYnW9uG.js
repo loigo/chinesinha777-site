@@ -1,0 +1,1 @@
+import{B as a,r as e,c as t,ah as s}from"./index-Bxx4mSPk.js";const n=(n,l)=>{const o=a(),u=e(!1),i=t({get:()=>n.modelValue,set(a){l("update:modelValue",a)}});return{VITE_ASSETS_URL:s,isOpen:i,goShare:async()=>{u.value=!0;try{await o.push({path:"/invited"}),i.value=!1}finally{u.value=!1}},btnLoading:u}};export{n as u};

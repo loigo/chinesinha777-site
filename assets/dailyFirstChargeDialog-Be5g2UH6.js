@@ -1,0 +1,1 @@
+import{B as a,r as e,c as s,ah as t}from"./index-Bxx4mSPk.js";const l=(l,r)=>{const i=a(),n=e(!1),o=s({get:()=>l.modelValue,set(a){r("update:modelValue",a)}});return{VITE_ASSETS_URL:t,isOpen:o,goDailyFirstCharge:async()=>{n.value=!0;try{await i.push({path:"/dailyFirstCharge"}),o.value=!1}finally{n.value=!1}},btnLoading:n}};export{l as u};

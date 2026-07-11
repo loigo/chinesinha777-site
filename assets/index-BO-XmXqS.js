@@ -1,0 +1,1 @@
+import{d as a,e,f as s,p as n,q as t,s as l,t as o,A as m,S as d}from"./index-Bxx4mSPk.js";const u=a({name:"HomePage",__name:"index",setup(a){const{HomePage:u,HomeSkeleton:f}=m();return(a,m)=>(s(),e("div",null,[(s(),n(d,null,{fallback:t((()=>[l(o(f))])),default:t((()=>[l(o(u))])),_:1}))]))}});export{u as default};

@@ -1,0 +1,1 @@
+import{B as e,bw as a,aA as r,ah as s,c as o}from"./index-Bxx4mSPk.js";const t=(t,u)=>{const c=e(),l=o({get:()=>t.modelValue,set(e){u("update:modelValue",e)}});return{isOpen:l,goRecharge:()=>{l.value=!1,c.push("/recharge")},VITE_ASSETS_URL:s,getCurrencyPrefixByLocale:r,formatNumber:a}};export{t as u};

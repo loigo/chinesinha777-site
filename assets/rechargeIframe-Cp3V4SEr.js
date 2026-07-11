@@ -1,0 +1,1 @@
+import{Q as a}from"./QPage-CUqk0D3N.js";import{d as e,l as s,D as r,p as t,f as m}from"./index-Bxx4mSPk.js";const o=e({name:"RechargeIframePage",__name:"rechargeIframe",setup(e){const o=s();return r((()=>{o.setIframeLoading(!0)})),(e,s)=>(m(),t(a,{class:"bg-white"}))}});export{o as default};

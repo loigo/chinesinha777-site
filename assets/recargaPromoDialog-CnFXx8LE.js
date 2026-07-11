@@ -1,0 +1,1 @@
+import{B as a,r as e,c as o,ah as r}from"./index-Bxx4mSPk.js";const s=(s,t)=>{const l=a(),n=e(!1),u=o({get:()=>s.modelValue,set(a){t("update:modelValue",a)}});return{VITE_ASSETS_URL:r,isOpen:u,goRecargaPromo:async()=>{n.value=!0;try{await l.push({path:"/recargaPromo"}),u.value=!1}finally{n.value=!1}},btnLoading:n}};export{s as u};

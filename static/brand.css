@@ -1,0 +1,96 @@
+/* ===== Logo chinesinha777 — tamanho do TEMA original (v=ch7-16) ===== */
+/* ui-polish.css carrega tokens e layout global */
+/*
+  Original rioslots: .logoBtn { width:1.4rem; min-height:.31rem }
+  rem = min(vw,461)/461*100 → mobile ~110px | desktop max 140px
+  Header altura tema: .53rem — logo cabe sem espremer Entrar/Registrar
+*/
+
+/* HEADER — igual original em qualquer tela */
+.header-content .logoBtn {
+  width: 1.4rem !important;
+  max-width: 1.4rem !important;
+  min-height: 0.31rem !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin-left: 0.1rem !important;
+  margin-right: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  overflow: hidden !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.header-content .logo-img,
+.header-content .logoBtn .logo-img,
+.header-content .logoBtn .q-img {
+  width: 100% !important;
+  max-width: 1.4rem !important;
+  height: auto !important;
+  max-height: 0.36rem !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  overflow: hidden !important;
+}
+
+.header-content .logo-img .q-img__image,
+.header-content .logo-img img:not([data-ch7-logo='1']),
+.header-content .logoBtn img:not([data-ch7-logo='1']) {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+.header-content img[data-ch7-logo='1'] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  max-width: 1.4rem !important;
+  height: auto !important;
+  max-height: 0.36rem !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+  position: relative !important;
+  z-index: 5 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* espaço para Entrar / Registrar */
+.header-content .loginRegister {
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+}
+
+/* FOOTER — original ~1.42rem */
+.footerImgContainer {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.footerImgContainer .logImg,
+img.logImg,
+img.logImg[data-ch7-logo='1'] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 1.42rem !important;
+  max-width: 1.42rem !important;
+  height: auto !important;
+  max-height: 0.36rem !important;
+  object-fit: contain !important;
+  margin-right: 0.5rem !important;
+}

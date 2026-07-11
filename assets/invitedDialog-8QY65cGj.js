@@ -1,0 +1,1 @@
+import{B as e,aA as a,ah as s,c as t}from"./index-Bxx4mSPk.js";const o=(o,n)=>{const r=e(),u=t({get:()=>o.modelValue,set(e){n("update:modelValue",e)}});return{isOpen:u,close:async()=>{await r.push("/invited"),u.value=!1},VITE_ASSETS_URL:s,getCurrencyPrefixByLocale:a}};export{o as u};

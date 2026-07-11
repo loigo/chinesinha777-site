@@ -1,0 +1,1 @@
+import{d as e,e as a,f as s,s as i,t as n,A as t}from"./index-Bxx4mSPk.js";const l=e({name:"DailyReliefPage",__name:"index",setup(e){const{DailyReliefPage:l}=t();return(e,t)=>(s(),a("div",null,[i(n(l))]))}});export{l as default};

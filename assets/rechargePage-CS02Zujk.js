@@ -1,0 +1,1 @@
+import{C as e,w as a,r,A as t}from"./index-Bxx4mSPk.js";const o=()=>{const{FooterCopyright:o,RechargePanel:h,WithdrawPanel:i}=t(),n=e(),s=r("recharge");return a((()=>n.query.tab),(e=>{s.value=e??"recharge"}),{immediate:!0}),{tab:s,FooterCopyright:o,RechargePanel:h,WithdrawPanel:i}};export{o as u};

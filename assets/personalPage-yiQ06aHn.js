@@ -1,0 +1,1 @@
+import{A as o,r as a,al as e,be as r,ah as s}from"./index-Bxx4mSPk.js";const{FooterCopyright:t,BalancePopup:p}=o(),i=e(),n=()=>{const o=a(!1);return{VITE_ASSETS_URL:s,VITE_AVATAR_URL:r,userStore:i,editUserNameDialog:o,FooterCopyright:t,BalancePopup:p}};export{n as u};

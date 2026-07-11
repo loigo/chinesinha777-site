@@ -1,0 +1,10 @@
+{
+  "version": "ch7-18",
+  "updatedAt": "2026-07-11T00:00:00.000Z",
+  "logos": {
+    "header": "/static/brand/logo-horizontal.png?v=ch7-18",
+    "mobile": "/static/brand/logo-horizontal-sm.png?v=ch7-18",
+    "footer": "/static/brand/logo-footer.png?v=ch7-18",
+    "icon": "/static/brand/logo-icon.png?v=ch7-18"
+  }
+}

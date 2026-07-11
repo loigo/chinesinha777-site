@@ -1,0 +1,1 @@
+import{d as a,e as s,f as e,s as n,t,A as o}from"./index-Bxx4mSPk.js";const r=a({name:"PersonalPage",__name:"index",setup(a){const{PersonalPage:r}=o();return(a,o)=>(e(),s("div",null,[n(t(r))]))}});export{r as default};

@@ -1,0 +1,1 @@
+import{B as a,r as e,c as s,ah as t}from"./index-Bxx4mSPk.js";const o=(o,r)=>{const n=a(),u=e(!1),c=s({get:()=>o.modelValue,set(a){r("update:modelValue",a)}});return{VITE_ASSETS_URL:t,isOpen:c,goRecharge:async()=>{await n.push({path:"/recharge"}),c.value=!1},btnLoading:u}};export{o as u};

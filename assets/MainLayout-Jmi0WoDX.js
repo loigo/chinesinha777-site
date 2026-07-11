@@ -1,0 +1,1 @@
+import{d as a,p as s,f as t,z as n,t as o,A as e}from"./index-Bxx4mSPk.js";const u=a({name:"MainLayout",__name:"MainLayout",setup(a){const{MainLayout:u}=e();return(a,e)=>(t(),s(n(o(u))))}});export{u as default};

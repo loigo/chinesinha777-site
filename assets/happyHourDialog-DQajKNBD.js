@@ -1,0 +1,1 @@
+import{B as a,r as e,c as s,ah as t}from"./index-Bxx4mSPk.js";const o=(o,u)=>{const p=a(),l=e(!1),n=s({get:()=>o.modelValue,set(a){u("update:modelValue",a)}});return{VITE_ASSETS_URL:t,isOpen:n,goHappyHour:async()=>{l.value=!0;try{await p.push({path:"/happyHour"}),n.value=!1}finally{l.value=!1}},btnLoading:l}};export{o as u};

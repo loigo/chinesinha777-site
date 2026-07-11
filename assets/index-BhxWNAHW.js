@@ -1,0 +1,1 @@
+import{d as a,e,f as s,s as n,t as o,A as r}from"./index-Bxx4mSPk.js";const t=a({name:"RecargaPromoIndex",__name:"index",setup(a){const{RecargaPromoPage:t}=r();return(a,r)=>(s(),e("div",null,[n(o(t))]))}});export{t as default};

@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width,viewport-fit=cover">
+  <meta name="description" content="Chinesinha777 — cassino online. Slots, bônus e PIX.">
+  <meta name="theme-color" content="#171512">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Chinesinha777.bet — O cassino está Bombando!</title>
+
+  <!-- ANTES do SPA: reescreve chinesinha777.bet/static → /static (evita timeout offline) -->
+  <script src="/static/asset-origin-fix.js?v=1"></script>
+
+  <!-- Guard Meta Pixel: 1x fbevents.js + 1 init por pixel ID (anti "conflicting versions") -->
+  <script>
+  (function(w,d){
+    if(w.__ch7FbqInitGuard) return;
+    w.__ch7FbqInitGuard=1;
+    w.__ch7FbInitedIds=w.__ch7FbInitedIds||Object.create(null);
+    var inited=w.__ch7FbInitedIds;
+    var fbeventsAllowed=1; // só o 1º fbevents.js entra
+
+    function isFbeventsUrl(v){
+      var s=String(v||'');
+      return /fbevents\.js/i.test(s) || /connect\.facebook\.net\/.+\/fbevents/i.test(s);
+    }
+    function blockFbevents(v){
+      if(!isFbeventsUrl(v)) return false;
+      if(fbeventsAllowed>0){ fbeventsAllowed=0; return false; }
+      return true; // bloqueia 2º+
+    }
+    function guardScriptEl(el){
+      if(!el || el.__ch7FbGuard) return el;
+      el.__ch7FbGuard=1;
+      try{
+        var desc=Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype,'src')
+          || Object.getOwnPropertyDescriptor(el,'src');
+        if(desc && desc.set){
+          Object.defineProperty(el,'src',{
+            configurable:true,enumerable:true,
+            get:function(){ return desc.get.call(this); },
+            set:function(v){
+              if(blockFbevents(v)) return; // drop 2º fbevents
+              return desc.set.call(this,v);
+            }
+          });
+        }
+      }catch(e){}
+      try{
+        var _sa=el.setAttribute.bind(el);
+        el.setAttribute=function(name,val){
+          if(String(name).toLowerCase()==='src' && blockFbevents(val)) return;
+          return _sa(name,val);
+        };
+      }catch(e){}
+      return el;
+    }
+
+    // createElement('script')
+    try{
+      var _ce=d.createElement.bind(d);
+      d.createElement=function(tag){
+        var el=_ce(tag);
+        if(String(tag).toLowerCase()==='script') guardScriptEl(el);
+        return el;
+      };
+    }catch(e){}
+
+    // appendChild / insertBefore — GTM às vezes injeta script já montado
+    try{
+      function wrapInsert(proto, method){
+        var orig=proto[method];
+        if(!orig || orig.__ch7Fb) return;
+        var wrapped=function(node){
+          try{
+            if(node && node.tagName==='SCRIPT'){
+              var src=node.src || (node.getAttribute && node.getAttribute('src')) || '';
+              if(blockFbevents(src)){
+                // não injeta 2º fbevents
+                return node;
+              }
+              guardScriptEl(node);
+            }
+          }catch(e){}
+          return orig.apply(this, arguments);
+        };
+        wrapped.__ch7Fb=1;
+        proto[method]=wrapped;
+      }
+      wrapInsert(Node.prototype,'appendChild');
+      wrapInsert(Node.prototype,'insertBefore');
+    }catch(e){}
+
+    function dedupeArgs(args){
+      if(!args||args[0]!=='init') return true;
+      var id=String(args[1]||'');
+      if(!id) return true;
+      if(inited[id]) return false;
+      inited[id]=1;
+      return true;
+    }
+    function patch(fbq){
+      if(typeof fbq!=='function'||fbq.__ch7Dedup) return fbq;
+      var orig=fbq;
+      function wrapped(){
+        if(!dedupeArgs(arguments)) return;
+        if(typeof orig.callMethod==='function'){
+          return orig.callMethod.apply(orig, arguments);
+        }
+        if(orig.queue){ orig.queue.push(arguments); return; }
+        return orig.apply(orig, arguments);
+      }
+      for(var k in orig){
+        try{ wrapped[k]=orig[k]; }catch(e){}
+      }
+      wrapped.queue=orig.queue;
+      wrapped.loaded=orig.loaded;
+      wrapped.version=orig.version;
+      wrapped.push=orig.push||function(){ return wrapped.apply(null, arguments); };
+      var cm=orig.callMethod;
+      wrapped.callMethod=function(){
+        if(!dedupeArgs(arguments)) return;
+        if(typeof cm==='function') return cm.apply(orig, arguments);
+        if(orig.queue){ orig.queue.push(arguments); return; }
+      };
+      try{
+        Object.defineProperty(orig,'callMethod',{
+          configurable:true,enumerable:true,
+          get:function(){ return cm; },
+          set:function(fn){
+            cm=function(){
+              if(!dedupeArgs(arguments)) return;
+              return fn.apply(orig, arguments);
+            };
+            wrapped.callMethod=cm;
+          }
+        });
+      }catch(e){}
+      wrapped.__ch7Dedup=1;
+      return wrapped;
+    }
+    function install(){
+      if(typeof w.fbq==='function'){ w.fbq=patch(w.fbq); return true; }
+      return false;
+    }
+    if(!install()){
+      var n=0,t=setInterval(function(){ if(install()||++n>400) clearInterval(t); },25);
+    }
+    try{
+      var _desc=Object.getOwnPropertyDescriptor(w,'fbq');
+      if(!_desc||_desc.configurable){
+        var _cur=w.fbq;
+        Object.defineProperty(w,'fbq',{
+          configurable:true,enumerable:true,
+          get:function(){ return _cur; },
+          set:function(v){ _cur=patch(v); }
+        });
+        if(typeof _cur==='function') _cur=patch(_cur);
+      }
+    }catch(e){}
+  })(window,document);
+  </script>
+  <!-- Google Tag Manager (só em domínio de produção — evita ERR_CONNECTION_TIMED_OUT no local) -->
+  <script>
+  (function(w,d,s,l,i){
+    try{
+      var h=String(location.hostname||'');
+      if(h==='localhost'||h==='127.0.0.1'||h==='[::1]'||h.endsWith('.local')) return;
+    }catch(e){}
+    w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+    var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;
+    j.src="https://srv.chinesinha777.bet/ahbnlwdoo.js?"+i;
+    f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','amza=BgtZMDgjTzxaWSNDOzYvThlSVlldSAYGUgwMHgILEQEBBwVAW1lMCgob');
+  </script>
+  <!-- End Google Tag Manager -->
+
+  <!-- Favicon / PWA icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/logo-icon-32.png?v=ch7-13">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/brand/logo-icon-192.png?v=ch7-13">
+  <link rel="apple-touch-icon" href="/static/brand/logo-icon-192.png?v=ch7-13">
+  <link rel="shortcut icon" href="/static/brand/logo-icon-32.png?v=ch7-13">
+
+  <!-- LCP shell + anti-tela-branca -->
+  <style>
+    html,body{margin:0;padding:0;background:#171512!important;color:#fff;min-height:100%;}
+    #q-app{min-height:100vh;background:#171512!important}
+    #ch7-boot{
+      position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      background:radial-gradient(ellipse at 50% 40%,#2a100c 0%,#171512 55%,#0a0908 100%);
+      z-index:99998;transition:opacity .3s ease;
+    }
+    #ch7-boot.hid{opacity:0;pointer-events:none}
+    #ch7-boot img{
+      width:min(300px,78vw);height:auto;max-height:90px;object-fit:contain;
+      display:block;margin:0 auto;
+      filter:drop-shadow(0 8px 24px rgba(246,207,135,.25));
+      animation:ch7pulse 1.6s ease-in-out infinite;
+    }
+    #ch7-boot .tag{
+      margin-top:14px;font:700 13px/1.2 system-ui,Segoe UI,sans-serif;
+      letter-spacing:.12em;text-transform:uppercase;color:#f6cf87;opacity:.85;
+    }
+    #ch7-boot .dots{margin-top:18px;display:flex;gap:8px}
+    #ch7-boot .dot{width:8px;height:8px;border-radius:50%;background:#f6cf87;animation:ch7b 1s infinite ease-in-out}
+    #ch7-boot .dot:nth-child(2){animation-delay:.15s}
+    #ch7-boot .dot:nth-child(3){animation-delay:.3s}
+    #ch7-fail{
+      display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;
+      padding:20px;background:#0a0908;color:#fff;text-align:center;font:500 15px/1.45 system-ui,sans-serif;
+    }
+    #ch7-fail.show{display:flex}
+    #ch7-fail .box{max-width:360px;background:#1e1c18;border:1px solid rgba(246,207,135,.3);
+      border-radius:16px;padding:22px 18px}
+    #ch7-fail h1{margin:0 0 8px;color:#f6cf87;font-size:17px}
+    #ch7-fail p{margin:0 0 14px;color:rgba(255,255,255,.7);font-size:13px}
+    #ch7-fail button{width:100%;padding:12px;border:0;border-radius:12px;font-weight:800;cursor:pointer;
+      background:linear-gradient(180deg,#ffe566,#f0b429);color:#1a1208}
+    @keyframes ch7b{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+    @keyframes ch7pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  </style>
+
+  <!-- Atualiza SW v8 (sem página Offline) e limpa só caches antigos — não desliga SW a cada load -->
+  <script>
+  (function(){
+    try{
+      if(window.caches&&caches.keys){
+        caches.keys().then(function(keys){
+          keys.forEach(function(k){
+            if(/ch7-static-v[1-7]|workbox|precache/i.test(k)){
+              caches.delete(k).catch(function(){});
+            }
+          });
+        }).catch(function(){});
+      }
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.getRegistrations().then(function(regs){
+          regs.forEach(function(r){
+            try{ r.update(); }catch(e){}
+          });
+        }).catch(function(){});
+      }
+    }catch(e){}
+  })();
+  </script>
+
+  <link rel="preconnect" href="https://www.okx007.com" crossorigin>
+  <link rel="dns-prefetch" href="https://www.okx007.com">
+  <link rel="dns-prefetch" href="https://pgsoft6.igamewin.com">
+  <link rel="dns-prefetch" href="https://painel.royalgamess.com">
+
+  <!-- Paths ABSOLUTOS (/assets) — NÃO adicionar ?v= no main module (quebra import.meta.url do Vite) -->
+  <link rel="modulepreload" href="/assets/index-Bxx4mSPk.js" crossorigin>
+  <link rel="preload" href="/assets/index-BqSTfsO5.css" as="style" crossorigin>
+  <link rel="preload" href="/static/brand/logo-horizontal.png?v=ch7-13" as="image" type="image/png">
+  <link rel="stylesheet" crossorigin href="/assets/index-BqSTfsO5.css">
+  <link rel="stylesheet" href="/static/kill-extra-ui.css?v=ch7-21">
+  <link rel="stylesheet" href="/static/brand.css?v=ch7-21">
+  <link rel="stylesheet" href="/static/ui-polish.css?v=ch7-25">
+
+  <script>
+    window.__RIOSLOTS_API_BASE__=window.location.origin;
+    window.__RIOSLOTS_ENV__="production";
+    window.__CHINESINHA_DEBUG__=false;
+  </script>
+</head>
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://srv.chinesinha777.bet/ns.html?id=GTM-T56G4WXM" height="0" width="0" style="display:none;visibility:hidden" title="gtm"></iframe></noscript>
+  <noscript>
+    <div style="padding:24px;text-align:center;color:#f6cf87;background:#171512;min-height:100vh">
+      Ative o JavaScript para usar o Chinesinha777.
+    </div>
+  </noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <div id="ch7-boot" aria-hidden="true">
+    <img src="/static/brand/logo-horizontal.png?v=ch7-13" width="300" height="73" alt="chinesinha777" fetchpriority="high"/>
+    <div class="tag">chinesinha777</div>
+    <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  </div>
+  <div id="q-app"></div>
+  <div id="ch7-fail" role="alert">
+    <div class="box">
+      <h1>Não foi possível carregar</h1>
+      <p>O site não iniciou. Toque em recarregar (limpa cache e tenta de novo).</p>
+      <button type="button" id="ch7-fail-btn">Recarregar site</button>
+    </div>
+  </div>
+
+  <script type="module" crossorigin src="/assets/index-Bxx4mSPk.js"
+    onerror="window.__ch7MainFail=1"></script>
+  <!-- Brand inject: header + footer (defer: depois do module) -->
+  <script defer src="/static/brand-inject.js?v=ch7-24"></script>
+  <script defer src="/static/supabase-boot.js?v=1"></script>
+  <!-- Injects com defer: não competem com o mount do Vue no #q-app -->
+  <script defer src="/static/deposit-cpf-inject.js?v=2"></script>
+  <script defer src="/static/deposit-pix-inject.js?v=7"></script>
+  <script defer src="/static/deposit-bonus-inject.js?v=6"></script>
+  <script defer src="/static/register-fields-inject.js?v=4"></script>
+  <script defer src="/static/checkin-treasure-inject.js?v=3"></script>
+  <script defer src="/static/pass-dialog-close.js?v=3"></script>
+  <script defer src="/static/invite-shop-inject.js?v=2"></script>
+  <script defer src="/static/tracking-attribution.js?v=2"></script>
+  <script defer src="/static/game-iframe-fix.js?v=5"></script>
+
+  <script>
+    function ch7Load(src){var s=document.createElement('script');s.src=src;s.defer=true;document.body.appendChild(s);}
+    function ch7BootHide(){
+      var b=document.getElementById('ch7-boot');
+      if(b){ b.classList.add('hid'); setTimeout(function(){try{b.remove()}catch(e){}},320); }
+    }
+    function ch7ShowFail(){
+      ch7BootHide();
+      var f=document.getElementById('ch7-fail');
+      if(f) f.classList.add('show');
+    }
+    var _mo=new MutationObserver(function(){
+      var app=document.getElementById('q-app');
+      if(app && app.children && app.children.length){ ch7BootHide(); _mo.disconnect(); }
+    });
+    _mo.observe(document.documentElement,{childList:true,subtree:true});
+    // se SPA montar, esconde boot; se falhar, mostra botão recarregar
+    setTimeout(function(){
+      var app=document.getElementById('q-app');
+      if(app && app.children && app.children.length){ ch7BootHide(); return; }
+      if(window.__ch7MainFail){ ch7ShowFail(); return; }
+      // dá mais tempo em 3G / cold start
+      setTimeout(function(){
+        var a=document.getElementById('q-app');
+        if(a && a.children && a.children.length){ ch7BootHide(); return; }
+        ch7BootHide();
+        if(!a || !a.children || !a.children.length) ch7ShowFail();
+      }, 4000);
+    }, 5000);
+
+    document.getElementById('ch7-fail-btn')&&document.getElementById('ch7-fail-btn').addEventListener('click',function(){
+      try{
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.getRegistrations().then(function(rs){
+            rs.forEach(function(r){r.unregister();});
+          });
+        }
+        if(window.caches) caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});});
+      }catch(e){}
+      location.href='/?_='+Date.now();
+    });
+
+    if('requestIdleCallback' in window){
+      requestIdleCallback(function(){
+        ch7Load('/static/activity-desc-close.js?v=ch7-24');
+        ch7Load('/static/perf-boost.js?v=ch7-23');
+      },{timeout:2500});
+    } else {
+      setTimeout(function(){
+        ch7Load('/static/activity-desc-close.js?v=ch7-24');
+        ch7Load('/static/perf-boost.js?v=ch7-23');
+      }, 800);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+/* Debug / FABs legados */
+#rg-fab,
+#rg-panel,
+.rg-fab,
+button[data-rg-fab],
+.jogos-rg-fab {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Perf imagens */
+img {
+  max-width: 100%;
+  height: auto;
+}
+.q-img__image,
+.game-img,
+.gameImg,
+[class*='game'] img {
+  content-visibility: auto;
+  contain-intrinsic-size: 120px 120px;
+}
+
+/* scroll suave */
+.swiper-wrapper,
+.q-scrollarea__container {
+  -webkit-overflow-scrolling: touch;
+}

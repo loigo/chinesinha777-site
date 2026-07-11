@@ -1,0 +1,1 @@
+import{r as e,A as r}from"./index-Bxx4mSPk.js";const o=()=>{const{FooterCopyright:o,CardGrid:a,NeedRechargeDialog:i}=r();return{FooterCopyright:o,CardGrid:a,NeedRechargeDialog:i,isNeedRecharge:e(!1)}};export{o as u};

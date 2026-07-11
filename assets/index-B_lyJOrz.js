@@ -1,0 +1,1 @@
+import{d as s,e as a,f as e,s as t,t as r,A as n}from"./index-Bxx4mSPk.js";const d=s({name:"MysteryCard",__name:"index",setup(s){const{MysteryCardPage:d}=n();return(s,n)=>(e(),a("div",null,[t(r(d))]))}});export{d as default};

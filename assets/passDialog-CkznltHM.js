@@ -1,0 +1,1 @@
+import{B as a,r as s,c as e,ah as t}from"./index-Bxx4mSPk.js";const l=(l,n)=>{const o=a(),u=s(!1),p=e({get:()=>l.modelValue,set(a){n("update:modelValue",a)}});return{VITE_ASSETS_URL:t,isOpen:p,goPass:async()=>{u.value=!0;try{await o.push({path:"/pass"}),p.value=!1}finally{u.value=!1}},btnLoading:u}};export{l as u};

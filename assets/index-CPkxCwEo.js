@@ -1,0 +1,1 @@
+import{d as a,e,f as s,p as n,q as t,z as l,t as o,A as r,s as d,S as u}from"./index-Bxx4mSPk.js";const c=a({name:"RechargePage",__name:"index",setup(a){const{RechargePage:c,HomeSkeleton:f}=r();return(a,r)=>(s(),e("div",null,[(s(),n(u,null,{fallback:t((()=>[d(o(f))])),default:t((()=>[(s(),n(l(o(c))))])),_:1}))]))}});export{c as default};

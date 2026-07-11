@@ -1,0 +1,246 @@
+html[data-theme='banana_man'] {
+  --main-color: #17181a !important;
+  --lay-header-color: #010101 !important;
+  --lay-header2-color: #323749 !important;
+
+  --header-bg-color: linear-gradient(to top, #e06226, #eaa91e);
+  --content-bg-color: linear-gradient(to bottom, #323749, #17181a);
+  --content-font-color: #a1a6b7;
+
+  --header-border-color: #0f1458;
+  --header-box-shadow-color: #f9ef4a;
+
+  --content-input-bg-color: #17181a;
+  --content-border-color: #3d4253;
+
+  --content-row-bg-color: #1f2023;
+  --content-row2-bg-color: #3e4346;
+
+  --withdraw-header-btn-bg-color: linear-gradient(to left, #2949bf, #5483ed);
+  --withdraw-submit-btn-bg-color: linear-gradient(to left, #bf7629, #edc454);
+  --withdraw-row-bg-color: #221713;
+  --withdraw-border-color: #7b6763;
+
+  --invited-btn-bg-color: linear-gradient(to top, #e06226, #eaa91e);
+  --invited-row-bg-color: linear-gradient(to bottom, #323749, #17181a);
+  --invited-bonus-box-bg-color: #312d2a;
+  --invited-border-color: #c9e5e2;
+
+  --recharge-orders-font-color: #aeb7bb;
+
+  --bank-input-bg-color: #26272a;
+  --bank-input-border-color: #565b69;
+  --bank-input-placeholder-color: #6d6f75;
+
+  --invitation-bg-color: linear-gradient(to top, #e06226, #eaa91e);
+  --invitation-header-color: #24293a;
+  --invitation-box-color: #1e202e;
+  --invitation-font-color: #939b9f;
+  --invitation-font-color2: #24293a;
+  --invitation-font-color3: #00ff85;
+  --invitation-title-font-color: #ffe700;
+
+  --invitation-tab-color: linear-gradient(to bottom, #fdd233, #f7b40e);
+  --invitation-tab-font-color: #a0a5b7;
+  --invitation-border-color: #a9d6d1;
+  --invitation-border-color2: #5e6475;
+
+  --pass-box-bg-color: linear-gradient(to bottom, #323749, #17181a);
+  --pass-box-border-color: #323749;
+  --pass-item-border-color: #24293a;
+  --pass-header-border-color: #4d5456;
+
+  --bg-color: #2d2d2d !important;
+  --bg2-color: #312d2a !important;
+  --bg3-color: #323749 !important;
+  --bg4-color: #1e202e !important;
+  --bg5-color: #1f2023 !important;
+  --bg6-color: #3e4346 !important;
+  --bg7-color: #1f2023 !important;
+  --bg8-color: #3e4346 !important;
+  --bg9-color: #1e202e !important;
+  --bg10-color: #0c120e !important;
+  --bg11-color: #1e202e !important;
+  --bg12-color: #24293a !important;
+  --bg13-color: #1e202e !important;
+  --bg14-color: linear-gradient(to left, #2ba92e, #56ea53) !important;
+  --bg15-color: #24293a !important;
+  --bg16-color: linear-gradient(to left, #2ba92e, #56ea53) !important;
+  --bg17-color: linear-gradient(to left, #2ba92e, #56ea53) !important;
+  --bg18-color: #1e202e !important;
+  --bg19-color: #5e6475 !important;
+  --bg20-color: #1e202e !important;
+  --bg21-color: #313536 !important;
+  --bg22-color: #202221 !important;
+  --bg23-color: #24293a !important;
+  --bg24-color: #1d212f !important;
+  --bg25-color: #202221 !important;
+  --bg26-color: #1e202e !important;
+  --bg27-color: linear-gradient(180deg, #1e202e 0%, #5b5e75 47%, #1e202e 100%);
+  --bg28-color: #1f2023;
+  --bg29-color: #13151e;
+  --bg30-color: linear-gradient(to left, #2ba92e, #56ea53);
+  --bg31-color: #3e4346;
+  --bg32-color: #1f2023;
+
+  --bg100-color: linear-gradient(to bottom, #2e7725, #78bf37) !important;
+  --bg101-color: transparent;
+  --bg102-color: #1d212f;
+  --bg103-color: #24293a;
+  --bg104-color: #1d212f;
+  --bg105-color: #24293a;
+  --bg106-color: #24293a;
+  --bg107-color: linear-gradient(to bottom, #005fea, #00c0fa) !important;
+  --bg108-color: transparent;
+  --bg109-color: #1d212f;
+  --bg110-color: #1d212f;
+  --bg111-color: #24293a;
+
+  --font-color: #aca39a !important;
+  --font2-color: #a9d6d1 !important;
+  --font3-color: #a29ea4 !important;
+  --font4-color: #f6cf87 !important;
+  --font5-color: #ffffff !important;
+  --font6-color: #535b75 !important;
+  --font7-color: #ffe13c !important;
+  --font8-color: #ffdf3c !important;
+  --font9-color: #ffb747 !important;
+  --font10-color: #737179 !important;
+  --font11-color: #aeb7bb !important;
+  --font12-color: #c9e5e2 !important;
+  --font13-color: #00ff85 !important;
+  --font14-color: #a9d6d1 !important;
+  --font15-color: #000000 !important;
+  --font16-color: #a9d6d1 !important;
+  --font17-color: #a9d6d1 !important;
+  --font18-color: #00ff85 !important;
+  --font19-color: #24293a !important;
+  --font20-color: #24293a !important;
+  --font21-color: #5e6475 !important;
+  --font22-color: #939b9f !important;
+  --font23-color: #5e6475 !important;
+  --font24-color: #5e6475 !important;
+  --font25-color: #1e202e !important;
+  --font26-color: #5e6475 !important;
+  --font27-color: #569d2e !important;
+  --font28-color: #74e9f3 !important;
+  --font29-color: #348ade !important;
+  --font30-color: #aeb7bb !important;
+  --font31-color: #fdde52 !important;
+  --font32-color: #a9d6d1 !important;
+  --font33-color: #aeb7bb !important;
+  --font34-color: #696c81 !important;
+  --font35-color: #d9d9d9 !important;
+  --font36-color: #ffd251 !important;
+  --font37-color: #c9e5e2 !important;
+  --font38-color: #fffefd !important;
+  --font39-color: #13151e !important;
+
+  --font100-color: #00ff85 !important;
+  --font101-color: #959da1 !important;
+  --font102-color: #959da1 !important;
+  --font103-color: #959da1 !important;
+  --font104-color: #959da1 !important;
+  --font105-color: #66d8ff !important;
+
+  --flex-style: flex-start;
+  --header-color: #534c41 !important;
+  --highlight-color: #edc454 !important;
+  --highlight2-color: #f6cf87 !important;
+  --highlight3-color: #00fb83 !important;
+  --highlight4-color: #00fb83 !important;
+
+  --btn1-color: linear-gradient(to bottom, #50b009, #a0e91c);
+  --btn2-color: linear-gradient(to bottom, #2e7725, #78bf37);
+  --btn3-color: linear-gradient(to bottom, #fcfef9, #fdc950);
+  --btn4-color: linear-gradient(to bottom, #ffdd24, #fb8026);
+  --btn5-color: linear-gradient(to left, #2ba92e, #56ea53);
+  --btn6-color: linear-gradient(to bottom, #a1e746, #5fb432);
+  --btn7-color: #1e202e;
+  --btn8-color: linear-gradient(to bottom, #2e7725, #78bf37);
+  --btn9-color: linear-gradient(to left, #2ba92e, #56ea53);
+
+  --border-color: #48413b;
+  --border2-color: #c9e5e2;
+  --border3-color: #00ff85;
+  --border4-color: #48413b;
+  --border5-color: #a9d6d1;
+  --border6-color: #2c3031;
+  --border7-color: #c9e5e2;
+  --border8-color: #a9d6d1;
+  --border9-color: #000000;
+  --border10-color: #a9d6d1;
+  --border11-color: #5e6475;
+  --border12-color: transparent;
+  --border13-color: #5e6475;
+  --border14-color: #5e6475;
+  --border15-color: #13151e;
+
+  --linear-bg-color: #000000;
+  --linear-color: linear-gradient(to left, #2ba92e, #56ea53);
+
+  --linear2-bg-color: #13151e;
+  --linear2-color: linear-gradient(to right, #fe9000, #ffd764);
+
+  --linear3-bg-color: #1d212f;
+  --linear3-color: linear-gradient(to left, #2ba92e, #56ea53);
+
+  --grandient-color: linear-gradient(to top, #e06226, #eaa91e);
+}
+
+html[data-theme='banana_man'] .example-item {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+html[data-theme='banana_man'] .myBtnStyle1 {
+  padding: 0;
+  min-height: auto;
+  line-height: normal;
+  margin: 0 auto;
+  display: block;
+  background: linear-gradient(to bottom, #fceb2c, #f7b40e);
+  color: #060609;
+  border-radius: 30px;
+  /* border: 1px solid #768dfd; */
+  /* box-shadow: inset 0px 0px 1px #768dfd; */
+}
+
+html[data-theme='banana_man'] .myBtnStyle2 {
+  padding: 0;
+  min-height: auto;
+  line-height: normal;
+  margin: 0 auto;
+  display: block;
+  background: linear-gradient(to top, #558ef8, #4b62ed);
+  color: #ffffff;
+  border-radius: 30px;
+  border: 1px solid #768dfd;
+  /* box-shadow: inset 0px 0px 1px #768dfd; */
+}
+
+html[data-theme='banana_man'] .myBtnStyle3 {
+  padding: 0;
+  min-height: auto;
+  line-height: normal;
+  margin: 0 auto;
+  display: block;
+  box-shadow: inset 0 0 0 3px #ffe075;
+  background: linear-gradient(to bottom, #fdd233 0%, #f7b40e 100%);
+  text-shadow:
+    0px 1px 1px #171512,
+    0px -1px 1px #171512,
+    1px 0px 1px #171512,
+    -1px 0px 1px #171512,
+    0px 2px 1px #171512,
+    0px 3px 1px #171512;
+  border-radius: 31px;
+  /* border: 1px solid #768dfd; */
+  /* box-shadow: inset 0px 0px 1px #768dfd; */
+}
+
+@font-face {
+  font-family: 'myFamily';
+  src: url('../font/banana_man.ttf');
+}

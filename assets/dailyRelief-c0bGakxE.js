@@ -1,0 +1,1 @@
+import{aY as e}from"./index-Bxx4mSPk.js";const t=()=>e.request("post","/gofun/v2/activity/daily_relief/info"),i=t=>e.request("post","/gofun/v2/activity/daily_relief/get",{data:{level:t}});export{i as c,t as g};

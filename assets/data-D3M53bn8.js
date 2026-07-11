@@ -1,0 +1,1 @@
+import{ah as m}from"./index-Bxx4mSPk.js";const a=[{img:`${m}1213.png`,name:"Facebook"},{img:`${m}1214.png`,name:"WhatsApp"},{img:`${m}1215.png`,name:"Telegram"},{img:`${m}1216.png`,name:"Instagram"},{img:`${m}1217.png`,name:"Twitter"},{img:`${m}1218.png`,name:"Kwai"}];export{a as s};

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 180" fill="none">
+  <defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c47a28"/>
+      <stop offset="100%" stop-color="#7a3e10"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe566"/>
+      <stop offset="50%" stop-color="#f0b429"/>
+      <stop offset="100%" stop-color="#b87a0a"/>
+    </linearGradient>
+    <linearGradient id="lid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e09940"/>
+      <stop offset="100%" stop-color="#a35a18"/>
+    </linearGradient>
+    <filter id="s" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000" flood-opacity=".4"/>
+    </filter>
+  </defs>
+  <ellipse cx="110" cy="168" rx="70" ry="10" fill="#000" opacity=".3"/>
+  <!-- body -->
+  <rect x="30" y="70" width="160" height="90" rx="10" fill="url(#wood)" filter="url(#s)"/>
+  <rect x="38" y="78" width="144" height="74" rx="6" fill="#5c2e0c" opacity=".35"/>
+  <!-- bands -->
+  <rect x="30" y="95" width="160" height="14" fill="url(#metal)"/>
+  <rect x="30" y="130" width="160" height="10" fill="url(#metal)"/>
+  <!-- lid -->
+  <path d="M28 78c0-28 30-48 82-48s82 20 82 48v8H28v-8z" fill="url(#lid)" filter="url(#s)"/>
+  <path d="M40 78c4-18 28-34 70-34s66 16 70 34" stroke="#ffe566" stroke-width="3" opacity=".5"/>
+  <!-- lock -->
+  <rect x="92" y="100" width="36" height="40" rx="6" fill="url(#metal)"/>
+  <circle cx="110" cy="118" r="8" fill="#5c2e0c"/>
+  <rect x="107" y="118" width="6" height="14" rx="2" fill="#5c2e0c"/>
+  <!-- gems glow -->
+  <circle cx="110" cy="48" r="6" fill="#ffe566" opacity=".85"/>
+  <circle cx="70" cy="55" r="3" fill="#fff3a0" opacity=".7"/>
+  <circle cx="150" cy="55" r="3" fill="#fff3a0" opacity=".7"/>
+</svg>

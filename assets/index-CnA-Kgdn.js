@@ -1,0 +1,1 @@
+import{d as e,e as a,f as s,s as r,t as n,A as t}from"./index-Bxx4mSPk.js";const d=e({name:"RechargeRecordPage",__name:"index",setup(e){const{RechargeRecordPage:d}=t();return(e,t)=>(s(),a("div",null,[r(n(d))]))}});export{d as default};

@@ -1,0 +1,1 @@
+import{aw as e}from"./index-Bxx4mSPk.js";function o(){if(void 0!==window.getSelection){const o=window.getSelection();void 0!==o.empty?o.empty():void 0!==o.removeAllRanges&&(o.removeAllRanges(),!0!==e.is.mobile&&o.addRange(document.createRange()))}else void 0!==document.selection&&document.selection.empty()}export{o as c};

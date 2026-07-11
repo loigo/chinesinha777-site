@@ -1,0 +1,1 @@
+let n=[],t=[];function e(n){t=t.filter((t=>t!==n))}function f(n){e(n),t.push(n)}function i(f){e(f),0===t.length&&0!==n.length&&(n[n.length-1](),n=[])}function l(e){0===t.length?e():n.push(e)}function u(t){n=n.filter((n=>n!==t))}export{f as a,l as b,u as c,i as r};

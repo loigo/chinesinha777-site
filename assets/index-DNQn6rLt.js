@@ -1,0 +1,1 @@
+import{d as a,e as n,f as s,p as e,z as t,t as o,A as c}from"./index-Bxx4mSPk.js";const u=a({name:"BankAccountPage",__name:"index",setup(a){const{BankAccountPage:u}=c();return(a,c)=>(s(),n("div",null,[(s(),e(t(o(u))))]))}});export{u as default};

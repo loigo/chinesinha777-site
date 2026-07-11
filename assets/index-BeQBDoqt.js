@@ -1,0 +1,1 @@
+import{d as a,e as s,f as e,s as n,t,A as i}from"./index-Bxx4mSPk.js";const d=a({name:"VipPage",__name:"index",setup(a){const{VipPage:d}=i();return(a,i)=>(e(),s("div",null,[n(t(d))]))}});export{d as default};

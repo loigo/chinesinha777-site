@@ -1,0 +1,1 @@
+import{aY as t}from"./index-Bxx4mSPk.js";const s=()=>t.request("post","/gofun/v2/activity/passport/info"),a=()=>t.request("post","/gofun/v2/activity/passport/get"),o=()=>t.request("post","/gofun/v2/activity/pass/info"),e=s=>t.request("post","/gofun/v2/activity/pass/get",{data:{level:s}});export{o as a,e as c,a as d,s as g};

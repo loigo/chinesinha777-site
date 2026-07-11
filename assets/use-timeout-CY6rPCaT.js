@@ -1,0 +1,1 @@
+import{a4 as e,a1 as t,M as u,N as n}from"./index-Bxx4mSPk.js";function o(){let o=null;const l=n();function i(){null!==o&&(clearTimeout(o),o=null)}return e(i),t(i),{removeTimeout:i,registerTimeout(e,t){i(),!1===u(l)&&(o=setTimeout((()=>{o=null,e()}),t))}}}export{o as u};

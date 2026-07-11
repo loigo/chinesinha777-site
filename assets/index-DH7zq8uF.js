@@ -1,0 +1,1 @@
+import{d as a,e as s,f as e,s as n,t,A as o}from"./index-Bxx4mSPk.js";const p=a({name:"HappyHourPage",__name:"index",setup(a){const{HappyHourPage:p}=o();return(a,o)=>(e(),s("div",null,[n(t(p))]))}});export{p as default};

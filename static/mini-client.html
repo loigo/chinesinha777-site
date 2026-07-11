@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chinesinha777 · Mini Client (Supabase)</title>
+  <style>
+    :root {
+      --bg: #0a0e14;
+      --card: #121a24;
+      --line: #243044;
+      --text: #e8eef7;
+      --muted: #8b9bb4;
+      --gold: #f5b942;
+      --gold2: #e08a1e;
+      --ok: #6dffa8;
+      --err: #ff7b7b;
+      --accent: #3d8bfd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1a2740 0%, var(--bg) 55%);
+      color: var(--text);
+      padding: 20px;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    header {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      justify-content: space-between; margin-bottom: 20px;
+    }
+    h1 { font-size: 1.15rem; margin: 0; }
+    .badge {
+      font-size: .72rem; padding: 4px 10px; border-radius: 999px;
+      background: #1c2a1c; color: var(--ok); border: 1px solid #2d5a3a;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: .95rem;
+      color: var(--gold);
+      letter-spacing: .02em;
+    }
+    label { display: block; font-size: .75rem; color: var(--muted); margin: 10px 0 4px; }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0c121a;
+      color: var(--text);
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--gold), var(--gold2));
+      color: #111;
+    }
+    button.secondary {
+      background: #1a2433;
+      color: var(--text);
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+    button:disabled { opacity: .55; cursor: wait; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .stat {
+      background: #0c121a;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .stat b { display: block; font-size: 1.1rem; color: var(--gold); }
+    .stat span { font-size: .7rem; color: var(--muted); }
+    pre {
+      margin: 12px 0 0;
+      background: #0c121a;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: .72rem;
+      max-height: 220px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .log { max-height: 280px; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .muted { color: var(--muted); font-size: .8rem; }
+    footer { margin-top: 18px; color: var(--muted); font-size: .75rem; }
+    code { color: #c9daf8; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Chinesinha777 · Mini Client</h1>
+        <div class="muted">Só APIs Supabase Edge · sem VPS · sem Vercel</div>
+      </div>
+      <span class="badge" id="healthBadge">checando…</span>
+    </header>
+
+    <div class="grid">
+      <!-- PLAYER -->
+      <section class="card">
+        <h2>Jogador</h2>
+        <label>Telefone</label>
+        <input id="pPhone" placeholder="11999999999" value="" />
+        <label>Senha</label>
+        <input id="pPass" type="password" value="Teste@123" />
+        <label>Nome (registro)</label>
+        <input id="pName" value="Player Mini" />
+        <div class="row">
+          <button id="btnReg">Registrar</button>
+          <button class="secondary" id="btnLogin">Login</button>
+          <button class="secondary" id="btnMe">Me</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="sCash">—</b><span>Cash</span></div>
+          <div class="stat"><b id="sBonus">—</b><span>Bônus</span></div>
+          <div class="stat"><b id="sPlay">—</b><span>Playable</span></div>
+        </div>
+        <label>Depósito (R$)</label>
+        <input id="pAmount" type="number" min="10" value="50" />
+        <div class="row">
+          <button id="btnPreview">Preview bônus</button>
+          <button id="btnDeposit">Depositar</button>
+          <button class="secondary" id="btnLedger">Ledger</button>
+          <button class="secondary" id="btnKyc">KYC</button>
+        </div>
+      </section>
+
+      <!-- ADMIN -->
+      <section class="card">
+        <h2>Admin</h2>
+        <label>E-mail</label>
+        <input id="aEmail" value="admin@test.local" />
+        <label>Senha</label>
+        <input id="aPass" type="password" value="102030" />
+        <div class="row">
+          <button id="btnAdmLogin">Login admin</button>
+          <button class="secondary" id="btnAdmMe">Me</button>
+          <button class="secondary" id="btnSummary">Summary</button>
+        </div>
+        <p class="muted" style="margin-top:14px">
+          Host: <code id="apiHost"></code><br/>
+          Token jogador: <code id="pTok">—</code><br/>
+          Token admin: <code id="aTok">—</code>
+        </p>
+        <div class="row">
+          <button class="secondary" id="btnHealth">Health</button>
+          <button class="secondary" id="btnBonusList">Lista bônus</button>
+          <button class="secondary" id="btnClear">Limpar tokens</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:16px">
+      <h2>Log / resposta</h2>
+      <pre class="log" id="log">Pronto.</pre>
+    </section>
+
+    <footer>
+      Player API: <code id="fPlayer"></code><br/>
+      Admin API: <code id="fAdmin"></code><br/>
+      Abra via: <code>http://127.0.0.1:5177/static/mini-client.html</code>
+      (CORS liberado nas Edge Functions)
+    </footer>
+  </div>
+
+  <script>
+    const CFG = {
+      base: 'https://bgajbbvgcqqkbvbtwnec.supabase.co',
+      anon: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0',
+    };
+    const PLAYER_API = CFG.base + '/functions/v1/player-api';
+    const ADMIN_API = CFG.base + '/functions/v1/admin-api';
+    const HEALTH = CFG.base + '/functions/v1/health';
+
+    document.getElementById('apiHost').textContent = CFG.base;
+    document.getElementById('fPlayer').textContent = PLAYER_API;
+    document.getElementById('fAdmin').textContent = ADMIN_API;
+
+    // random phone for first open
+    document.getElementById('pPhone').value = '119' + String(Date.now()).slice(-8);
+
+    let pToken = localStorage.getItem('ch7_p_token') || '';
+    let aToken = localStorage.getItem('ch7_a_token') || '';
+    syncTok();
+
+    function syncTok() {
+      document.getElementById('pTok').textContent = pToken ? pToken.slice(0, 28) + '…' : '—';
+      document.getElementById('aTok').textContent = aToken ? aToken.slice(0, 28) + '…' : '—';
+    }
+
+    function log(title, data, ok) {
+      const el = document.getElementById('log');
+      const line = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      el.innerHTML = `<span class="${ok === false ? 'err' : ok ? 'ok' : ''}">// ${title}</span>\n` + line;
+    }
+
+    async function api(url, { method = 'GET', body, token, player } = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        apikey: CFG.anon,
+        Authorization: 'Bearer ' + (token || CFG.anon),
+      };
+      if (player && pToken) headers['x-player-token'] = pToken;
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { json = { raw: text }; }
+      return { status: res.status, json };
+    }
+
+    function setBal(u) {
+      if (!u) return;
+      document.getElementById('sCash').textContent = 'R$ ' + Number(u.balance ?? u.cash ?? 0).toFixed(2);
+      document.getElementById('sBonus').textContent = 'R$ ' + Number(u.bonus ?? 0).toFixed(2);
+      const play = u.playable != null ? u.playable : Number(u.balance || 0) + Number(u.bonus || 0);
+      document.getElementById('sPlay').textContent = 'R$ ' + Number(play).toFixed(2);
+    }
+
+    // Health
+    (async () => {
+      try {
+        const { status, json } = await api(HEALTH);
+        const ok = status === 200 && json.ok;
+        const b = document.getElementById('healthBadge');
+        b.textContent = ok ? 'Supabase Edge OK' : 'Health falhou';
+        b.style.background = ok ? '#1c2a1c' : '#3a1c1c';
+        b.style.color = ok ? 'var(--ok)' : 'var(--err)';
+        if (ok) log('health', json, true);
+      } catch (e) {
+        document.getElementById('healthBadge').textContent = 'offline';
+        log('health error', String(e), false);
+      }
+    })();
+
+    document.getElementById('btnReg').onclick = async () => {
+      const { status, json } = await api(PLAYER_API + '/auth/register', {
+        method: 'POST',
+        body: {
+          phone: pPhone.value.trim(),
+          password: pPass.value,
+          name: pName.value.trim(),
+        },
+      });
+      if (json.token) {
+        pToken = json.token;
+        localStorage.setItem('ch7_p_token', pToken);
+        syncTok();
+        setBal(json.user);
+      }
+      log('register ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnLogin').onclick = async () => {
+      const { status, json } = await api(PLAYER_API + '/auth/login', {
+        method: 'POST',
+        body: { phone: pPhone.value.trim(), password: pPass.value },
+      });
+      if (json.token) {
+        pToken = json.token;
+        localStorage.setItem('ch7_p_token', pToken);
+        syncTok();
+        setBal(json.user);
+      }
+      log('login ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnMe').onclick = async () => {
+      const { status, json } = await api(PLAYER_API + '/auth/me', { player: true });
+      if (json.user) setBal(json.user);
+      log('me ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnPreview').onclick = async () => {
+      const amount = Number(pAmount.value || 0);
+      const { status, json } = await api(PLAYER_API + '/bonus/preview', {
+        method: 'POST',
+        player: true,
+        body: { amount },
+      });
+      log('bonus/preview ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnDeposit').onclick = async () => {
+      const amount = Number(pAmount.value || 0);
+      const { status, json } = await api(PLAYER_API + '/cash/deposit', {
+        method: 'POST',
+        player: true,
+        body: { amount },
+      });
+      if (json.ok) {
+        setBal({ balance: json.balance, bonus: json.bonus, playable: Number(json.balance) + Number(json.bonus) });
+      }
+      log('deposit ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnLedger').onclick = async () => {
+      const { status, json } = await api(PLAYER_API + '/cash/ledger', { player: true });
+      log('ledger ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnKyc').onclick = async () => {
+      const { status, json } = await api(PLAYER_API + '/kyc', {
+        method: 'POST',
+        player: true,
+        body: { fullName: (pName.value || 'Player Mini') + ' Silva', cpf: '52998224725' },
+      });
+      log('kyc ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnBonusList').onclick = async () => {
+      const { status, json } = await api(PLAYER_API + '/bonus');
+      log('bonus list ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnAdmLogin').onclick = async () => {
+      const { status, json } = await api(ADMIN_API + '/auth/login', {
+        method: 'POST',
+        body: { email: aEmail.value.trim(), password: aPass.value },
+      });
+      if (json.token) {
+        aToken = json.token;
+        localStorage.setItem('ch7_a_token', aToken);
+        syncTok();
+      }
+      log('admin login ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnAdmMe').onclick = async () => {
+      const { status, json } = await api(ADMIN_API + '/auth/me', { token: aToken });
+      log('admin me ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnSummary').onclick = async () => {
+      const { status, json } = await api(ADMIN_API + '/summary', { token: aToken });
+      log('summary ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnHealth').onclick = async () => {
+      const { status, json } = await api(HEALTH);
+      log('health ' + status, json, !!json.ok);
+    };
+
+    document.getElementById('btnClear').onclick = () => {
+      pToken = '';
+      aToken = '';
+      localStorage.removeItem('ch7_p_token');
+      localStorage.removeItem('ch7_a_token');
+      syncTok();
+      setBal({ balance: 0, bonus: 0, playable: 0 });
+      document.getElementById('sCash').textContent = '—';
+      document.getElementById('sBonus').textContent = '—';
+      document.getElementById('sPlay').textContent = '—';
+      log('tokens limpos', {}, true);
+    };
+  </script>
+</body>
+</html>
