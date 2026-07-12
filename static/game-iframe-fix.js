@@ -74,7 +74,7 @@
   // Proxy game-shell: local usa same-origin /game-shell; prod usa Edge Supabase
   // (permite injetar tradução de popup de vitória + formatarURL).
   var EDGE_GAME_SHELL =
-    'https://vcohnsuomswwfxqlmllm.supabase.co/functions/v1/game-shell';
+    'https://csdzxeohpgnvvewnwxod.supabase.co/functions/v1/game-shell';
 
   function isStaticProdHost() {
     var h = location.hostname || '';
