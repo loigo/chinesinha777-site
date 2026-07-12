@@ -18,8 +18,7 @@
   <script src="/static/vendor/crypto-js.min.js"></script>
   <!-- Produção estática: SW off + /gofun → Supabase Edge -->
   <script src="/static/gofun-edge-bridge.js?v=15"></script>
-  <!-- DEBUG completo (prod) — desligar: ?debug=0 ou localStorage CHINESINHA_DEBUG -->
-  <script>window.__CHINESINHA_DEBUG__=true;</script>
+  <!-- Debug opcional: ?debug=1 ou localStorage CHINESINHA_DEBUG=1 -->
   <script src="/static/debug-mode.js?v=2"></script>
 
   <!-- Guard Meta Pixel: 1x fbevents.js + 1 init por pixel ID (anti "conflicting versions") -->
@@ -270,7 +269,7 @@
   <script>
     window.__RIOSLOTS_API_BASE__=window.location.origin;
     window.__RIOSLOTS_ENV__="production";
-    window.__CHINESINHA_DEBUG__=true;
+    window.__CHINESINHA_DEBUG__=false;
   </script>
 </head>
 <body class="notranslate" translate="no">
