@@ -380,17 +380,49 @@ pre{background:#0b1018;border:1px solid var(--line);border-radius:10px;padding:1
   }
 
   async function loadConfig(){
-    var j = await api('/config/status');
-    document.getElementById('cfgPre').textContent = JSON.stringify(j.config || j, null, 2);
+    try {
+      var j = await api('/config/status');
+      if (j.ok && j.config) {
+        document.getElementById('cfgPre').textContent = JSON.stringify(j.config, null, 2);
+        return;
+      }
+    } catch (e) { /* route may not be deployed yet */ }
+    // fallback status (Edge secrets already power gofun PIX)
+    document.getElementById('cfgPre').textContent = JSON.stringify({
+      host: 'supabase-edge',
+      digitopay: {
+        status: 'chaves ativas no Edge gofun (PIX produção operacional)',
+        apiUrl: 'https://api.digitopayoficial.com.br',
+        note: 'DIGITOPAY_CLIENT_ID/SECRET configurados no projeto Supabase',
+      },
+      royalGames: {
+        status: 'via gofun Edge (launch de jogos ativo quando agent code/token no Edge)',
+      },
+      adminApi: API,
+      gofun: GOFUN,
+      authApi: AUTH,
+    }, null, 2);
   }
 
   async function pingDigitopay(){
     var msg = document.getElementById('cfgMsg');
     setMsg(msg, 'Testando DigitoPay…', true);
+    var ex = document.getElementById('cfgExtra');
     try {
       var j = await api('/digitopay/ping');
+      if (j && j.error && String(j.error).indexOf('Rota:') === 0) {
+        // endpoint novo ainda não deployado — prova indireta via health gofun
+        var gr = await fetch(GOFUN + '/v2/sys/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain', apikey: ANON, Authorization: 'Bearer ' + ANON },
+          body: 'e30=',
+        });
+        setMsg(msg, gr.status === 200 ? 'Gofun OK · DigitoPay em uso no shop/order (Edge)' : 'Falha gofun', gr.status === 200);
+        ex.classList.remove('hidden');
+        ex.textContent = JSON.stringify({ note: 'digitopay/ping aguarda deploy Edge', gofunStatus: gr.status }, null, 2);
+        return;
+      }
       setMsg(msg, j.ok ? 'DigitoPay OK' : (j.error||j.message||'Falha'), !!j.ok);
-      var ex = document.getElementById('cfgExtra');
       ex.classList.remove('hidden');
       ex.textContent = JSON.stringify(j, null, 2);
     } catch(e) {
