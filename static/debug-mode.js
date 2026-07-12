@@ -1,15 +1,18 @@
 /**
- * Modo BUG / DEBUG — mostra erros do console na tela.
+ * Modo BUG / DEBUG completo — console + gofun/firstpage + contagem de jogos.
  *
  * Ativo se:
- *  - ?debug=1 ou ?bug=1 na URL
+ *  - window.__CHINESINHA_DEBUG__ === true
  *  - localStorage.CHINESINHA_DEBUG === '1'
- *  - window.__CHINESINHA_DEBUG__ === true (env-config)
+ *  - ?debug=1 ou ?bug=1
  *
- * Desligar: localStorage.removeItem('CHINESINHA_DEBUG') e tire ?debug=1
+ * Desligar: localStorage.removeItem('CHINESINHA_DEBUG') e ?debug=0
+ * v2 — painel de saúde (bridge, firstpage, game boxes)
  */
 (function () {
   'use strict';
+  if (window.__ch7DebugModeV2) return;
+  window.__ch7DebugModeV2 = 1;
 
   function wantDebug() {
     try {
@@ -31,8 +34,8 @@
   if (!wantDebug()) return;
 
   var logs = [];
-  var MAX = 80;
-  var panel, listEl, badge;
+  var MAX = 120;
+  var panel, listEl, badge, healthEl;
 
   function esc(s) {
     return String(s)
@@ -57,7 +60,6 @@
     return String(a);
   }
 
-  /** Erros conhecidos inofensivos (Quasar/Chrome) — não poluir o painel */
   function isNoise(text) {
     var t = String(text || '');
     if (/ResizeObserver loop/i.test(t)) return true;
@@ -79,9 +81,11 @@
     if (logs.length > MAX) logs.shift();
     render();
     if (badge) {
-      badge.textContent = String(logs.filter(function (l) {
-        return l.level === 'error';
-      }).length);
+      badge.textContent = String(
+        logs.filter(function (l) {
+          return l.level === 'error';
+        }).length,
+      );
       badge.style.display = logs.length ? 'flex' : 'none';
     }
   }
@@ -112,6 +116,58 @@
       .join('');
   }
 
+  function healthSnapshot() {
+    var fp = window.__CH7_LAST_FIRSTPAGE__ || null;
+    var boxes = 0;
+    var imgsOk = 0;
+    try {
+      boxes = document.querySelectorAll('.gameImgBox').length;
+      document.querySelectorAll('.gameImgBox img.q-img__image, .gameImgBox img').forEach(function (img) {
+        if (img && img.naturalWidth > 10) imgsOk++;
+      });
+    } catch (e) {}
+    return {
+      bridge: !!(window.__ch7GofunBridgeV15 || window.__ch7GofunBridgeV14),
+      bridgeV: window.__ch7GofunBridgeV15 ? 15 : window.__ch7GofunBridgeV14 ? 14 : 0,
+      edge: window.__CH7_GOFUN_EDGE__ || '',
+      firstpage: fp,
+      gameBoxes: boxes,
+      imgsLoaded: imgsOk,
+      coversV4: !!window.__ch7GameCoversV4,
+      host: location.host,
+    };
+  }
+
+  function renderHealth() {
+    if (!healthEl) return;
+    var h = healthSnapshot();
+    var fp = h.firstpage;
+    var fpLine = fp
+      ? 'firstpage: ' +
+        (fp.ok ? 'OK' : 'FAIL') +
+        ' games=' +
+        (fp.gameCount != null ? fp.gameCount : '?') +
+        (fp.coversFixed != null ? ' coversFix=' + fp.coversFixed : '') +
+        (fp.status ? ' http=' + fp.status : '')
+      : 'firstpage: (aguardando…)';
+    healthEl.innerHTML =
+      '<div style="font-size:11px;line-height:1.45;color:#cfcfcf;padding:6px 10px;background:#161616;border-bottom:1px solid #333">' +
+      '<b style="color:#7bfe7c">HEALTH</b> ' +
+      'bridge=v' +
+      h.bridgeV +
+      ' · boxes=' +
+      h.gameBoxes +
+      ' · imgs=' +
+      h.imgsLoaded +
+      ' · covers=' +
+      (h.coversV4 ? 'v4' : 'no') +
+      '<br>' +
+      esc(fpLine) +
+      '<br><span style="color:#888;word-break:break-all">edge=' +
+      esc(h.edge || '-') +
+      '</span></div>';
+  }
+
   function ensureUI() {
     if (panel) return;
 
@@ -119,24 +175,25 @@
     style.textContent =
       '#ch-debug-fab{position:fixed;right:10px;bottom:70px;z-index:2147483646;width:48px;height:48px;border-radius:50%;border:2px solid #ff6b6b;background:#1a1a1a;color:#ff6b6b;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.45)}' +
       '#ch-debug-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#ff6b6b;color:#fff;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px}' +
-      '#ch-debug-panel{position:fixed;left:0;right:0;bottom:0;z-index:2147483647;max-height:45vh;background:#111;color:#eee;border-top:2px solid #ff6b6b;display:none;flex-direction:column;font-family:system-ui,sans-serif}' +
+      '#ch-debug-panel{position:fixed;left:0;right:0;bottom:0;z-index:2147483647;max-height:50vh;background:#111;color:#eee;border-top:2px solid #ff6b6b;display:none;flex-direction:column;font-family:system-ui,sans-serif}' +
       '#ch-debug-panel.open{display:flex}' +
-      '#ch-debug-head{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1c1c1c;border-bottom:1px solid #333}' +
+      '#ch-debug-head{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1c1c1c;border-bottom:1px solid #333;flex-wrap:wrap}' +
       '#ch-debug-head strong{color:#ff6b6b;font-size:13px}' +
-      '#ch-debug-head button{margin-left:auto;background:#333;color:#fff;border:0;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer}' +
+      '#ch-debug-head button{background:#333;color:#fff;border:0;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer}' +
       '#ch-debug-list{overflow:auto;flex:1;-webkit-overflow-scrolling:touch}';
     document.head.appendChild(style);
 
     var fab = document.createElement('button');
     fab.id = 'ch-debug-fab';
     fab.type = 'button';
-    fab.title = 'Modo BUG — erros do console';
+    fab.title = 'Modo BUG — debug completo';
     fab.textContent = 'BUG';
     badge = document.createElement('span');
     badge.id = 'ch-debug-badge';
     fab.appendChild(badge);
     fab.onclick = function () {
       panel.classList.toggle('open');
+      renderHealth();
     };
     document.body.appendChild(fab);
 
@@ -144,15 +201,17 @@
     panel.id = 'ch-debug-panel';
     panel.innerHTML =
       '<div id="ch-debug-head">' +
-      '<strong>🐞 MODO BUG</strong>' +
-      '<span style="font-size:11px;color:#aaa">console + erros de rede/launch</span>' +
+      '<strong>🐞 DEBUG PROD</strong>' +
+      '<span style="font-size:11px;color:#aaa">gofun · jogos · erros</span>' +
+      '<button type="button" id="ch-debug-refresh">Health</button>' +
       '<button type="button" id="ch-debug-copy">Copiar</button>' +
       '<button type="button" id="ch-debug-clear">Limpar</button>' +
       '<button type="button" id="ch-debug-close">Fechar</button>' +
       '<button type="button" id="ch-debug-off">Desligar</button>' +
-      '</div><div id="ch-debug-list"></div>';
+      '</div><div id="ch-debug-health"></div><div id="ch-debug-list"></div>';
     document.body.appendChild(panel);
     listEl = panel.querySelector('#ch-debug-list');
+    healthEl = panel.querySelector('#ch-debug-health');
 
     panel.querySelector('#ch-debug-close').onclick = function () {
       panel.classList.remove('open');
@@ -165,12 +224,21 @@
         badge.style.display = 'none';
       }
     };
+    panel.querySelector('#ch-debug-refresh').onclick = function () {
+      renderHealth();
+      push('info', ['HEALTH', healthSnapshot()]);
+    };
     panel.querySelector('#ch-debug-copy').onclick = function () {
-      var t = logs
-        .map(function (l) {
-          return '[' + l.time + '] ' + l.level.toUpperCase() + ' ' + l.text;
-        })
-        .join('\n\n');
+      var h = healthSnapshot();
+      var t =
+        'HEALTH ' +
+        JSON.stringify(h, null, 2) +
+        '\n\n' +
+        logs
+          .map(function (l) {
+            return '[' + l.time + '] ' + l.level.toUpperCase() + ' ' + l.text;
+          })
+          .join('\n\n');
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(t).catch(function () {});
       }
@@ -178,11 +246,13 @@
     panel.querySelector('#ch-debug-off').onclick = function () {
       try {
         localStorage.removeItem('CHINESINHA_DEBUG');
+        window.__CHINESINHA_DEBUG__ = false;
       } catch (e) {}
       location.href = location.pathname + location.hash;
     };
 
-    push('info', ['Modo BUG ativo — erros do console aparecem aqui.']);
+    push('info', ['Modo DEBUG completo ativo. Bridge + firstpage + contagem de jogos.']);
+    renderHealth();
   }
 
   // wrap console
@@ -204,14 +274,12 @@
   window.addEventListener('error', function (ev) {
     var msg = ev.message || 'Error';
     if (isNoise(msg)) {
-      // evita o browser logar como uncaught ruidoso no nosso painel
       ev.preventDefault && ev.preventDefault();
       return;
     }
     ensureUI();
     push('error', [
-      msg +
-        (ev.filename ? ' @ ' + ev.filename + ':' + ev.lineno + ':' + ev.colno : ''),
+      msg + (ev.filename ? ' @ ' + ev.filename + ':' + ev.lineno + ':' + ev.colno : ''),
       ev.error || '',
     ]);
   });
@@ -221,7 +289,40 @@
     push('error', ['UnhandledRejection', ev.reason]);
   });
 
-  // intercept fetch errors / launch failures
+  // XHR gofun logging
+  try {
+    var XO = XMLHttpRequest.prototype.open;
+    var XS = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (method, url) {
+      this.__ch7DbgUrl = url;
+      this.__ch7DbgMethod = method;
+      return XO.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function (body) {
+      var xhr = this;
+      var u = String(xhr.__ch7DbgUrl || xhr.__ch7Url || '');
+      if (/gofun|firstpage|supabase\.co|functions\/v1/i.test(u)) {
+        xhr.addEventListener('loadend', function () {
+          try {
+            ensureUI();
+            var st = xhr.status;
+            var level = st >= 200 && st < 300 ? 'info' : 'error';
+            var extra = '';
+            if (/firstpage/i.test(u) && window.__CH7_LAST_FIRSTPAGE__) {
+              extra = ' ' + JSON.stringify(window.__CH7_LAST_FIRSTPAGE__);
+            }
+            push(level, [
+              'XHR ' + (xhr.__ch7DbgMethod || '') + ' ' + st + ' ' + u.slice(0, 140) + extra,
+            ]);
+            renderHealth();
+          } catch (e) {}
+        });
+      }
+      return XS.apply(this, arguments);
+    };
+  } catch (eX) {}
+
+  // fetch errors / launch
   if (window.fetch) {
     var rawFetch = window.fetch.bind(window);
     window.fetch = function (input, init) {
@@ -240,7 +341,6 @@
               })
               .catch(function () {});
           }
-          // also log launch business errors (HTTP 200 + code!=0)
           if (/game\/launch/i.test(url)) {
             res
               .clone()
@@ -279,9 +379,24 @@
     };
   }
 
-  // boot UI soon
   function boot() {
     ensureUI();
+    // recheck games after SPA mounts
+    setTimeout(function () {
+      renderHealth();
+      var h = healthSnapshot();
+      push('info', [
+        'games boxes=' + h.gameBoxes + ' imgs=' + h.imgsLoaded + ' firstpage=',
+        h.firstpage || null,
+      ]);
+      if (h.gameBoxes === 0) {
+        push('warn', [
+          'ZERO gameImgBox no DOM — firstpage pode ter falhado, cache antigo, ou popup bloqueando.',
+        ]);
+      }
+    }, 2500);
+    setTimeout(renderHealth, 5000);
+    setTimeout(renderHealth, 10000);
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

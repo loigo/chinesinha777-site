@@ -1,13 +1,15 @@
 /**
- * Bridge v14 — /gofun → Supabase Edge (Pro aposta 777).
+ * Bridge v15 — /gofun → Supabase Edge (Pro aposta 777).
  * CRÍTICO: token do jogador (ch7.*) NÃO pode ir só em Authorization.
+ * v15: reescreve Icons firstpage p/ URL absoluta same-origin (SPA não prefixa CDN)
+ *      + log debug (__CHINESINHA_DEBUG__ / ?debug=1)
  * v14: FORÇA host nativo *.supabase.co (csdzxeohpgnvvewnwxod) para XHR/apikey
- *      sempre bater — custom domain sozinho falhava em alguns caminhos axios.
  * v13: isEdgeMapped no XHR/axios.
  */
 (function () {
   'use strict';
-  if (window.__ch7GofunBridgeV14) return;
+  if (window.__ch7GofunBridgeV15) return;
+  window.__ch7GofunBridgeV15 = 1;
   window.__ch7GofunBridgeV14 = 1;
   window.__ch7GofunBridgeV13 = 1;
   window.__ch7GofunBridgeV12 = 1;
@@ -16,6 +18,210 @@
   window.__ch7GofunBridgeV9 = 1;
   window.__ch7GofunBridgeV8 = 1;
   window.__ch7GofunBridgeV7 = 1;
+
+  var CRYPTO_KEY = '9EzYC7IZE1PTREu8';
+  var dbgLog = [];
+  window.__CH7_GOFUN_DEBUG__ = dbgLog;
+
+  function isDebug() {
+    try {
+      if (window.__CHINESINHA_DEBUG__ === true) return true;
+      if (localStorage.getItem('CHINESINHA_DEBUG') === '1') return true;
+      var q = new URLSearchParams(location.search);
+      if (q.get('debug') === '1' || q.get('bug') === '1') return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function dbg() {
+    if (!isDebug()) return;
+    try {
+      var args = ['[ch7-bridge]'].concat([].slice.call(arguments));
+      dbgLog.push({ t: Date.now(), msg: args.map(String).join(' ') });
+      if (dbgLog.length > 100) dbgLog.shift();
+      if (console && console.log) console.log.apply(console, args);
+    } catch (e) {}
+  }
+
+  /**
+   * AES-128-ECB raw Base64 (igual Node createCipheriv / SPA).
+   * NÃO usar CryptoJS.AES.encrypt().toString() (formato Salted__ OpenSSL).
+   */
+  function aesDecrypt(b64) {
+    var C = window.CryptoJS;
+    if (!C || !b64) return null;
+    try {
+      var key = C.enc.Utf8.parse(CRYPTO_KEY);
+      var raw = String(b64).trim();
+      var params = C.lib.CipherParams.create({
+        ciphertext: C.enc.Base64.parse(raw),
+      });
+      var dec = C.AES.decrypt(params, key, {
+        mode: C.mode.ECB,
+        padding: C.pad.Pkcs7,
+      });
+      var s = dec.toString(C.enc.Utf8);
+      return s || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function aesEncrypt(obj) {
+    var C = window.CryptoJS;
+    if (!C) return null;
+    try {
+      var key = C.enc.Utf8.parse(CRYPTO_KEY);
+      var plain = typeof obj === 'string' ? obj : JSON.stringify(obj);
+      var enc = C.AES.encrypt(plain, key, {
+        mode: C.mode.ECB,
+        padding: C.pad.Pkcs7,
+      });
+      // só ciphertext raw em Base64 (compatível com gofunJson / SPA)
+      return C.enc.Base64.stringify(enc.ciphertext);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function fixCoverUrl(v) {
+    var s = String(v || '').trim();
+    if (!s) return s;
+    var origin = location.origin || 'https://chinesinha777.bet';
+    if (/banana_man/i.test(s) && /games-orig/i.test(s)) {
+      return origin + '/static/games-orig/' + s.split('/').pop();
+    }
+    if (/okx007\.com/i.test(s) && /games-orig/i.test(s)) {
+      return origin + '/static/games-orig/' + s.split('/').pop();
+    }
+    if (/\/static\/games-orig\//i.test(s)) {
+      if (/^https?:\/\//i.test(s)) {
+        try {
+          var u = new URL(s);
+          return origin + u.pathname;
+        } catch (e0) {
+          return s;
+        }
+      }
+      var p = s.charAt(0) === '/' ? s : '/' + s;
+      return origin + p;
+    }
+    return s;
+  }
+
+  function walkFixCovers(node) {
+    if (!node || typeof node !== 'object') return 0;
+    var n = 0;
+    if (Array.isArray(node)) {
+      for (var i = 0; i < node.length; i++) n += walkFixCovers(node[i]);
+      return n;
+    }
+    var keys = ['Icon', 'Image', 'Pic', 'Cover'];
+    for (var k = 0; k < keys.length; k++) {
+      var key = keys[k];
+      if (node[key] != null && typeof node[key] === 'string') {
+        var next = fixCoverUrl(node[key]);
+        if (next !== node[key]) {
+          node[key] = next;
+          n++;
+        }
+      }
+    }
+    for (var prop in node) {
+      if (!Object.prototype.hasOwnProperty.call(node, prop)) continue;
+      if (typeof node[prop] === 'object' && node[prop]) n += walkFixCovers(node[prop]);
+    }
+    return n;
+  }
+
+  /** Reescreve resposta AES firstpage: Icons → absolute same-origin */
+  function rewriteFirstpageBody(raw) {
+    if (!raw || typeof raw !== 'string') return raw;
+    var text = raw.trim();
+    if (!text) return raw;
+    try {
+      var plain;
+      var wasAes = false;
+      if (text.charAt(0) === '{' || text.charAt(0) === '[') {
+        plain = text;
+      } else {
+        plain = aesDecrypt(text);
+        wasAes = true;
+        if (!plain) return raw;
+      }
+      var j = JSON.parse(plain);
+      var fixed = walkFixCovers(j);
+      var count =
+        (j.data && j.data.AllGames && (j.data.AllGames.Count || (j.data.AllGames.List || []).length)) ||
+        0;
+      window.__CH7_LAST_FIRSTPAGE__ = {
+        at: Date.now(),
+        gameCount: count,
+        coversFixed: fixed,
+        code: j.code,
+        ok: j.code === 0 || j.code === '0',
+      };
+      dbg('firstpage rewrite games=' + count + ' coversFixed=' + fixed);
+      if (fixed === 0) return raw; // nada mudou — não re-encripta
+      if (!wasAes) return JSON.stringify(j);
+      var enc = aesEncrypt(j);
+      if (!enc) return raw;
+      // sanity: re-decrypt deve funcionar
+      var check = aesDecrypt(enc);
+      if (!check || check.indexOf('"code"') < 0) {
+        dbg('re-encrypt sanity fail — keep original');
+        return raw;
+      }
+      return enc;
+    } catch (e) {
+      dbg('firstpage rewrite fail', e && e.message);
+      return raw;
+    }
+  }
+
+  function attachFirstpageRewrite(xhr) {
+    if (!xhr || xhr.__ch7FpHook) return;
+    xhr.__ch7FpHook = 1;
+    xhr.addEventListener('readystatechange', function () {
+      try {
+        if (xhr.readyState !== 4) return;
+        var u = String(xhr.__ch7Url || '');
+        if (!/firstpage/i.test(u)) return;
+        if (xhr.status < 200 || xhr.status >= 300) {
+          dbg('firstpage HTTP', xhr.status, u);
+          window.__CH7_LAST_FIRSTPAGE__ = {
+            at: Date.now(),
+            ok: false,
+            status: xhr.status,
+            url: u,
+          };
+          return;
+        }
+        var raw = xhr.responseText;
+        var fixed = rewriteFirstpageBody(raw);
+        if (fixed && fixed !== raw) {
+          try {
+            Object.defineProperty(xhr, 'responseText', {
+              configurable: true,
+              get: function () {
+                return fixed;
+              },
+            });
+            Object.defineProperty(xhr, 'response', {
+              configurable: true,
+              get: function () {
+                return fixed;
+              },
+            });
+          } catch (eDef) {
+            dbg('defineProperty fail', eDef && eDef.message);
+          }
+        }
+      } catch (e2) {
+        dbg('fp hook err', e2 && e2.message);
+      }
+    });
+  }
 
   // Pro aposta 777 — SEMPRE host nativo (contém supabase.co → auth XHR 100%)
   var PRO_REF = 'csdzxeohpgnvvewnwxod';
@@ -370,6 +576,10 @@
       this.__ch7Url = mapped;
       this.__ch7PlayerTok = '';
       arguments[1] = mapped;
+      if (/firstpage/i.test(String(mapped || '')) || /firstpage/i.test(String(url || ''))) {
+        attachFirstpageRewrite(this);
+      }
+      if (mapped !== url) dbg('XHR map', url, '→', mapped);
     } catch (e) {}
     return XO.apply(this, arguments);
   };
@@ -498,4 +708,6 @@
   window.__CH7_GOFUN_EDGE__ = GOFUN;
   window.__ch7MapGofun = mapUrl;
   window.__ch7EnsureEdgeAuth = ensureEdgeAuth;
+  window.__ch7RewriteFirstpage = rewriteFirstpageBody;
+  dbg('bridge v15 ready', GOFUN);
 })();
