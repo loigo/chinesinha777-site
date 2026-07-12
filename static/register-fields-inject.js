@@ -31,7 +31,7 @@
   var LOGIN_PASS_ERR_ID = 'ch7-login-pass-err';
   var EDGE =
     window.__CH7_GOFUN_EDGE__ ||
-    'https://csdzxeohpgnvvewnwxod.supabase.co/functions/v1/gofun';
+    'https://vcohnsuomswwfxqlmllm.supabase.co/functions/v1/gofun';
   var ANON =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
   var CRYPTO_KEY = '9EzYC7IZE1PTREu8';

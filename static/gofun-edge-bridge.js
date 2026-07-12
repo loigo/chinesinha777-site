@@ -15,7 +15,7 @@
   window.__ch7GofunBridgeV8 = 1;
   window.__ch7GofunBridgeV7 = 1;
 
-  var EDGE = 'https://csdzxeohpgnvvewnwxod.supabase.co/functions/v1';
+  var EDGE = 'https://vcohnsuomswwfxqlmllm.supabase.co/functions/v1';
   var GOFUN = EDGE + '/gofun';
   var ANON =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
