@@ -1,32 +1,9 @@
 import{aY as e,b3 as a,l as s,am as o,aV as t,ah as n,bF as i,c as r,bp as l,r as g,aN as d,V as u,bG as p}from"./index-Bxx4mSPk.js";
 import{u as c}from"./use-quasar-DLMazzJX.js";
-
-/** kind: empty | email | phone */
-function __ch7Detect(v){
-  const s=String(v||"").trim();
-  if(!s)return"empty";
-  // @ ou letras ⇒ e-mail (evita "telefone inválido" enquanto digita)
-  if(s.includes("@")||/[a-zA-Z]/.test(s))return"email";
-  if(/^[\d\s().+\-]+$/.test(s))return"phone";
-  return"email";
-}
 function __ch7IsEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim())}
-function __ch7IsPhone(v){
-  let d=String(v||"").replace(/\D/g,"");
-  if((d.length===12||d.length===13)&&d.startsWith("55"))d=d.slice(2);
-  return d.length===10||d.length===11;
-}
-function __ch7LoginIdRule(val){
-  const s=String(val||"").trim();
-  if(!s)return"Informe e-mail ou telefone";
-  if(__ch7Detect(s)==="email")return __ch7IsEmail(s)||"E-mail inválido";
-  return __ch7IsPhone(s)||"Número de telefone inválido (use DDD + número)";
-}
-function __ch7RegPhoneRule(val){
-  const s=String(val||"").trim();
-  if(!s)return"Número de telefone inválido (use DDD + número)";
-  return __ch7IsPhone(s)||"Número de telefone inválido (use DDD + número)";
-}
+function __ch7IsPhone(v){const d=String(v||"").replace(/\D/g,"");return d.length>=10&&d.length<=13}
+function __ch7LoginIdRule(val){const s=String(val||"").trim();if(!s)return"Campo obrigatório";if(s.includes("@"))return __ch7IsEmail(s)||"E-mail inválido";return __ch7IsPhone(s)||"Número de telefone inválido"}
+function __ch7BuildLoginId(raw,ddi){const s=String(raw||"").trim();if(__ch7IsEmail(s))return s;let d=s.replace(/\D/g,"");const c=String(ddi||"55").replace(/\D/g,"")||"55";if(d.startsWith(c)&&d.length>=12)return d;if(d.startsWith("55")&&d.length>=12)return d;return c+d}
 
 /** Normaliza resposta de login/regist → userInfoData seguro */
 function pickUserInfo(res){
@@ -47,20 +24,23 @@ function pickUserInfo(res){
 }
 
 function isEmail(v){
-  return __ch7IsEmail(v);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim());
 }
 
 function isPhone(v){
-  return __ch7IsPhone(v);
+  const d=String(v||"").replace(/\D/g,"");
+  return d.length>=10&&d.length<=13;
 }
 
-/** Monta phone/email para API sem duplicar DDI 55 */
+/** Monta phone para API sem duplicar DDI 55 */
 function buildPhoneForApi(raw, countryFn){
   const s=String(raw||"").trim();
-  if(__ch7Detect(s)==="email") return s;
+  if(isEmail(s)) return s;
   let digits=s.replace(/\D/g,"");
+  // já tem DDI 55
   if(digits.startsWith("55")&&digits.length>=12) return digits;
   const ddi=String(typeof countryFn==="function"?countryFn():"55").replace(/\D/g,"")||"55";
+  // evita 5555…
   if(digits.startsWith(ddi)&&digits.length>=12) return digits;
   return ddi+digits;
 }
@@ -72,13 +52,17 @@ const h=(h,m)=>{
   C=g(!0),
   E=d({phone:"",password:""}),
   S=g(!1),
-  // Login: até 80 (e-mail); cadastro nativo SPA: 11 dígitos (form v9 cobre cadastro real)
+  // Login: até 80 (e-mail); cadastro: 10/11 dígitos
   V=r((()=>"login"===b.value?80:("es-MX"===u?10:11))),
-  // rules inteligentes
+  // rules como FUNÇÕES (Quasar)
   T=r((()=>[
+    (val)=>!!String(val||"").trim()||v("loginDialog.phone_invalid"),
     (val)=>{
-      if("login"===b.value) return __ch7LoginIdRule(val);
-      return __ch7RegPhoneRule(val);
+      const s=String(val||"").trim();
+      if("login"===b.value){return __ch7LoginIdRule(s);}
+      return "es-MX"===u
+        ? (/^\d{10}$/.test(s)||v("loginDialog.phone_invalid"))
+        : (/^\d{10,11}$/.test(s)||v("loginDialog.phone_invalid"));
     }
   ]));
 
@@ -93,22 +77,15 @@ const h=(h,m)=>{
         S.value=!0;
         const share=D?.shareCode;
         const raw=String(E.phone||"").trim();
-        // login: validação forte
-        if("login"===b.value){
-          const rule=__ch7LoginIdRule(raw);
-          if(rule!==true)throw new Error(typeof rule==="string"?rule:"Dados inválidos");
-          if(String(E.password||"").length<6)throw new Error("A senha deve ter no mínimo 6 caracteres.");
-        }
         const phoneForApi=
           "login"===b.value
             ? buildPhoneForApi(raw, i)
             : (String(i()||"55").replace(/\D/g,"")+raw.replace(/\D/g,""));
         const payload={phone:phoneForApi,pass:E.password,Adid:p(),GPSAdid:p(),Share:share,shareCode:share};
-        if(__ch7Detect(raw)==="email"){
+        if(isEmail(raw)){
           payload.email=raw;
           payload.Email=raw;
-          payload.phone=raw;
-          payload.account=raw;
+          payload.phone=raw; // login por e-mail limpo
         }
 
         if("login"===b.value){

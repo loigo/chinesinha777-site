@@ -1,1 +1,13 @@
-{"version":"ch7-winpt2","ts":"2026-07-11","winPopupPt":2,"gameShell":true}
+{
+  "name": "chinesinha777-front",
+  "version": "1.0.0",
+  "preparedAt": "2026-07-12T02:52:18.764Z",
+  "port": 5177,
+  "publicOrigin": "https://chinesinha777.bet",
+  "nodeEnv": "production",
+  "notes": [
+    "SPA estática + server.mjs (sem Vite dist).",
+    "Nginx: 443 → 127.0.0.1:5177",
+    "Admin separado em /painel → :3020"
+  ]
+}

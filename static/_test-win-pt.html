@@ -1,12 +1,55 @@
-<!DOCTYPE html><html><body style="background:#111;color:#fff;font-family:sans-serif;padding:40px">
-<div id="popup" style="padding:24px;border:1px solid gold;border-radius:16px;max-width:360px;margin:auto;text-align:center">
-  <div class="title">CONGRATS YOU'VE WON R$ 5 IN RESPIN BONUS!</div>
-</div>
-<script src="/static/win-popup-pt-inject-winpt2v1783805000.js"></script>
-<script>
-setTimeout(function(){
-  var t=document.querySelector('.title').textContent;
-  document.body.insertAdjacentHTML('beforeend','<pre id="out">RESULT: '+t+'</pre>');
-}, 500);
-</script>
-</body></html>
+<!DOCTYPE html>
+<html lang="pt-BR" class="notranslate" translate="no">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="google" content="notranslate"/>
+  <meta http-equiv="Content-Language" content="pt-BR"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Teste popup vitória pt-BR</title>
+  <style>
+    body{background:#111;color:#fff;font-family:system-ui,sans-serif;padding:40px}
+    .box{padding:24px;border:1px solid gold;border-radius:16px;max-width:360px;margin:16px auto;text-align:center}
+    pre{background:#222;padding:12px;border-radius:8px;max-width:480px;margin:12px auto;white-space:pre-wrap}
+  </style>
+</head>
+<body class="notranslate" translate="no">
+  <div id="popup" class="box q-dialog">
+    <div class="title">CONGRATS YOU'VE WON R$ 5 IN RESPIN BONUS!</div>
+  </div>
+  <div id="popup2" class="box q-dialog">
+    <div class="title2">You won R$ 12.50 in free spins bonus!</div>
+  </div>
+  <div id="popup3" class="box q-dialog">
+    <div class="title3">BIG WIN</div>
+  </div>
+  <script src="/static/win-popup-pt-inject.js?v=winpt4"></script>
+  <script>
+  setTimeout(function () {
+    var t1 = (document.querySelector('.title') || {}).textContent || '';
+    var t2 = (document.querySelector('.title2') || {}).textContent || '';
+    var t3 = (document.querySelector('.title3') || {}).textContent || '';
+    var html = document.documentElement;
+    var meta = document.querySelector('meta[name="google"]');
+    var out = {
+      respin: t1,
+      freeSpin: t2,
+      bigWin: t3,
+      lang: html.getAttribute('lang'),
+      translate: html.getAttribute('translate'),
+      notranslateClass: html.classList.contains('notranslate'),
+      googleMeta: meta ? meta.getAttribute('content') : null,
+      respinOk: /PARAB[EÉ]NS|VOC[EÊ]\s+GANHOU|RESPIN/i.test(t1) && !/CONGRATS|YOU.?VE/i.test(t1),
+      freeOk: /GANHOU|RODADAS|B[OÔ]NUS/i.test(t2) && !/You won/i.test(t2),
+      bigOk: /GRANDE\s+VIT[OÓ]RIA|VIT[OÓ]RIA/i.test(t3) && !/BIG\s+WIN/i.test(t3),
+      notranslateOk: html.getAttribute('translate') === 'no' && meta && meta.getAttribute('content') === 'notranslate'
+    };
+    out.allOk = out.respinOk && out.freeOk && out.bigOk && out.notranslateOk;
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<pre id="out">' + JSON.stringify(out, null, 2) + '</pre>'
+    );
+    console.log('WIN_PT_TEST', out);
+  }, 800);
+  </script>
+</body>
+</html>
