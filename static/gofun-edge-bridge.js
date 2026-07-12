@@ -1,15 +1,17 @@
 /**
- * Bridge v12 — /gofun → Supabase Edge (Pro aposta 777).
+ * Bridge v13 — /gofun → Supabase Edge (Pro aposta 777).
  * CRÍTICO: token do jogador (ch7.*) NÃO pode ir só em Authorization —
  * o gateway Supabase engole/valida JWT e a sessão some no depósito.
  * Copia ch7.* → x-player-token + token; Authorization = Bearer ANON.
- * v12: EDGE/ANON do projeto Pro + custom domain api.chinesinha777.bet
- *       (v11 apontava Free apagado → home sem jogos).
+ * v13: XHR + axios usam isEdgeMapped (api.chinesinha777.bet), não só supabase.co
+ *       (v12 reescrevia URL mas NÃO injetava apikey no custom domain → home sem jogos).
+ * v12: EDGE/ANON do projeto Pro + custom domain.
  * v11: se SPA não manda Authorization, busca token em localStorage/pinia.
  */
 (function () {
   'use strict';
-  if (window.__ch7GofunBridgeV12) return;
+  if (window.__ch7GofunBridgeV13) return;
+  window.__ch7GofunBridgeV13 = 1;
   window.__ch7GofunBridgeV12 = 1;
   window.__ch7GofunBridgeV11 = 1;
   window.__ch7GofunBridgeV10 = 1;
@@ -379,7 +381,8 @@
   };
   XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
     try {
-      if (this.__ch7Url && String(this.__ch7Url).indexOf('supabase.co') !== -1) {
+      // v13: custom domain api.chinesinha777.bet também é Edge (não só *.supabase.co)
+      if (this.__ch7Url && isEdgeMapped(this.__ch7Url)) {
         if (/^authorization$/i.test(String(name || ''))) {
           var v = String(value || '')
             .replace(/^Bearer\s+/i, '')
@@ -402,7 +405,7 @@
   };
   XMLHttpRequest.prototype.send = function (body) {
     try {
-      if (this.__ch7Url && String(this.__ch7Url).indexOf('supabase.co') !== -1) {
+      if (this.__ch7Url && isEdgeMapped(this.__ch7Url)) {
         try {
           this.setRequestHeader('apikey', ANON);
         } catch (e) {}
@@ -435,13 +438,15 @@
   function hookAxios() {
     try {
       var ax = window.axios || null;
-      if (ax && ax.interceptors && ax.interceptors.request && !ax.__ch7HookedV8) {
+      if (ax && ax.interceptors && ax.interceptors.request && !ax.__ch7HookedV13) {
+        ax.__ch7HookedV13 = 1;
         ax.__ch7HookedV8 = 1;
         ax.__ch7Hooked = 1;
         ax.interceptors.request.use(function (config) {
           if (config && config.url) {
             config.url = mapUrl(config.url);
-            if (String(config.url).indexOf('supabase.co') !== -1) {
+            // v13: custom domain também precisa apikey + Authorization ANON
+            if (isEdgeMapped(config.url)) {
               config.headers = config.headers || {};
               var auth =
                 config.headers.Authorization ||
