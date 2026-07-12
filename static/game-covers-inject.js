@@ -1,20 +1,80 @@
 /**
- * Capas de jogos — tamanho compacto SEM quebrar o QImg do SPA.
- * v=3 — não mexe em padding-bottom / height do q-img__container (causava h=0).
+ * Capas de jogos — v4
+ *
+ * Causa: SPA (GameImg) faz data-src = ASSETS_BASE + Icon quando Icon NÃO é http(s).
+ * ASSETS_BASE = https://www.okx007.com/res/banana_man
+ * Icon local /static/games-orig/X.png → CDN 404.
+ *
+ * Fix: reescrever data-src/src para same-origin absoluto ANTES do browser carregar.
+ * v=4 — hooks setAttribute + src; rewrite banana_man/static/games-orig.
  */
 (function () {
   'use strict';
-  if (window.__ch7GameCoversV3) return;
+  if (window.__ch7GameCoversV4) return;
+  window.__ch7GameCoversV4 = 1;
   window.__ch7GameCoversV3 = 1;
   window.__ch7GameCoversV2 = 1;
   window.__ch7GameCoversV1 = 1;
 
-  var BANANA = 'https://www.okx007.com/res/banana_man';
-  var STYLE_ID = 'ch7-game-covers-v3';
+  var STYLE_ID = 'ch7-game-covers-v4';
+  var ORIGIN = location.origin || '';
+
+  function fileName(path) {
+    var s = String(path || '');
+    var i = s.lastIndexOf('/');
+    return i >= 0 ? s.slice(i + 1) : s;
+  }
+
+  /**
+   * Converte URL de capa para same-origin absoluto /static/games-orig/FILE
+   * (http(s) same-origin → SPA não prefixa banana_man)
+   */
+  function toLocalCover(url) {
+    var s = String(url || '').trim();
+    if (!s) return s;
+
+    // CDN errado: banana_man + games-orig (404)
+    if (/banana_man/i.test(s) && /games-orig/i.test(s)) {
+      return ORIGIN + '/static/games-orig/' + fileName(s);
+    }
+    if (/okx007\.com/i.test(s) && /games-orig/i.test(s)) {
+      return ORIGIN + '/static/games-orig/' + fileName(s);
+    }
+
+    // Já same-origin absoluto com games-orig
+    try {
+      if (/^https?:\/\//i.test(s)) {
+        var u = new URL(s);
+        if (/\/static\/games-orig\//i.test(u.pathname)) {
+          if (u.origin === ORIGIN) return s;
+          return ORIGIN + u.pathname;
+        }
+        // externo legítimo (não games-orig) — mantém
+        return s;
+      }
+    } catch (e0) {}
+
+    // Path relativo /static/games-orig/...
+    if (/\/static\/games-orig\//i.test(s) || /^static\/games-orig\//i.test(s)) {
+      var p = s.charAt(0) === '/' ? s : '/' + s;
+      // normaliza se faltar /static
+      if (!/^\/static\//i.test(p)) p = '/static/games-orig/' + fileName(p);
+      return ORIGIN + p.replace(/\/{2,}/g, '/').replace(':/', '://');
+    }
+
+    // só filename g_0_*.png / game_*.png
+    if (/^(g_0_|game_)/i.test(s)) {
+      return ORIGIN + '/static/games-orig/' + s;
+    }
+
+    // path /games/... no CDN original funciona — opcional reescrever se local existir
+    // (não forçamos: CDN okx /games/ retorna 200)
+    return s;
+  }
 
   function ensureStyle() {
     try {
-      ['ch7-game-covers-v1', 'ch7-game-covers-v2'].forEach(function (id) {
+      ['ch7-game-covers-v1', 'ch7-game-covers-v2', 'ch7-game-covers-v3'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.remove();
       });
@@ -23,7 +83,6 @@
     var s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent =
-      /* Cards um pouco menores — só largura; altura vem do padding-bottom nativo do QImg */
       '.gameImgBox{' +
       'width:1.15rem!important;max-width:1.15rem!important;' +
       'flex:0 0 1.15rem!important;position:relative!important;}' +
@@ -31,11 +90,11 @@
       '.gameImgBox .q-img.gameImg{' +
       'width:100%!important;border-radius:.07rem!important;overflow:hidden!important;' +
       'background:var(--bg-color,#1a1a1a)!important;}' +
-      /* capa: cover sem forçar height 0 */
       '.gameImgBox .gameImg .q-img__image,' +
-      '.gameImgBox .q-img.gameImg .q-img__image{' +
-      'object-fit:cover!important;object-position:center center!important;}' +
-      /* Estrela favorita pequena */
+      '.gameImgBox .q-img.gameImg .q-img__image,' +
+      '.gameImgBox img.ch7-cover-fallback{' +
+      'object-fit:cover!important;object-position:center center!important;' +
+      'opacity:1!important;visibility:visible!important;}' +
       '.gameImgBox .collectionBox,' +
       '.gameImgBox button.collectionBox{' +
       'position:absolute!important;top:0!important;right:.05rem!important;' +
@@ -59,35 +118,39 @@
     document.head.appendChild(s);
   }
 
-  function rewriteSrc(src) {
-    var s = String(src || '');
-    if (!s) return s;
-    if (/\/static\//i.test(s) || /games-orig/i.test(s)) {
-      // corrige CDN errado banana_man/static/games-orig → local
-      try {
-        var u = new URL(s, location.href);
-        if (/banana_man\/static\/games-orig/i.test(u.pathname + u.href)) {
-          return '/static/games-orig/' + u.pathname.split('/').pop();
-        }
-      } catch (e) {}
-      return s;
-    }
-    if (/^\/games\//i.test(s) || /^games\//i.test(s)) {
-      return BANANA + (s.charAt(0) === '/' ? s : '/' + s);
-    }
-    try {
-      var u2 = new URL(s, location.href);
-      if (/banana_man\/static\/games-orig/i.test(u2.href)) {
-        return '/static/games-orig/' + u2.pathname.split('/').pop();
+  // ── Hooks cedo: Vue seta data-src com CDN+path; reescrevemos na hora ──
+  try {
+    var origSetAttr = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (name, value) {
+      if (name === 'data-src' || name === 'src') {
+        var next = toLocalCover(value);
+        if (next && next !== value) value = next;
       }
-    } catch (e2) {}
-    return s;
-  }
+      return origSetAttr.call(this, name, value);
+    };
+  } catch (eHook1) {}
+
+  try {
+    var desc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+    if (desc && desc.set && desc.get) {
+      Object.defineProperty(HTMLImageElement.prototype, 'src', {
+        configurable: true,
+        enumerable: desc.enumerable,
+        get: function () {
+          return desc.get.call(this);
+        },
+        set: function (v) {
+          var next = toLocalCover(v);
+          return desc.set.call(this, next && next !== v ? next : v);
+        },
+      });
+    }
+  } catch (eHook2) {}
 
   function fixImg(img) {
     if (!img || !img.getAttribute) return;
     var before = img.getAttribute('src') || '';
-    var next = rewriteSrc(before);
+    var next = toLocalCover(before);
     if (next && next !== before) {
       try {
         img.setAttribute('src', next);
@@ -98,16 +161,12 @@
   function fixBox(box) {
     if (!box || !box.getAttribute) return;
     var ds = box.getAttribute('data-src') || '';
-    if (!ds) return;
-    if (/banana_man\/static\/games-orig/i.test(ds)) {
-      var fixed = '/static/games-orig/' + ds.split('/').pop();
-      box.setAttribute('data-src', fixed);
-      ds = fixed;
-    }
-    // normaliza data-src local
-    if (/games-orig/i.test(ds) && !/^https?:\/\//i.test(ds) && ds.indexOf('/static/') !== 0) {
-      ds = '/static/games-orig/' + ds.split('/').pop();
-      box.setAttribute('data-src', ds);
+    if (ds) {
+      var fixedDs = toLocalCover(ds);
+      if (fixedDs && fixedDs !== ds) {
+        box.setAttribute('data-src', fixedDs);
+        ds = fixedDs;
+      }
     }
     try {
       var qimg = box.querySelector('.gameImg, .q-img.gameImg');
@@ -117,23 +176,14 @@
         coverImg.naturalWidth > 20 &&
         parseFloat(getComputedStyle(coverImg).height || '0') > 10;
 
-      // Força src no QImg se data-src existe e imagem vazia
       if (qimg && !naturalOk && ds) {
-        var src = rewriteSrc(ds);
-        if (src && !/^https?:\/\//i.test(src) && src.charAt(0) !== '/') {
-          src = '/static/games-orig/' + src.split('/').pop();
-        }
-        if (src && src.indexOf('games-orig') >= 0 && src.charAt(0) !== '/' && !/^https?:/.test(src)) {
-          src = '/' + src;
-        }
-        // se path relativo games-orig sem /static
-        if (/^\/?g_0_|^\/?game_/i.test(src)) src = '/static/games-orig/' + src.replace(/^\//, '');
-
+        var src = toLocalCover(ds);
         if (coverImg) {
           var cur = coverImg.getAttribute('src') || '';
-          if (!cur || coverImg.naturalWidth === 0) {
+          var curFixed = toLocalCover(cur);
+          if (!cur || coverImg.naturalWidth === 0 || (curFixed && curFixed !== cur)) {
             try {
-              coverImg.setAttribute('src', src);
+              coverImg.setAttribute('src', src || curFixed || cur);
             } catch (e4) {}
           }
         } else if (!box.querySelector('img.ch7-cover-fallback')) {
@@ -145,19 +195,14 @@
           im.src = src;
           im.style.cssText =
             'display:block;width:100%;height:auto;aspect-ratio:100/135;object-fit:cover;border-radius:0.07rem;';
-          if (qimg) {
-            // se o sizer padding existe, usa absolute
-            var sizer = qimg.querySelector('div[style*="padding-bottom"]');
-            if (sizer) {
-              im.style.cssText =
-                'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0.07rem;z-index:1;';
-              qimg.style.position = 'relative';
-              qimg.appendChild(im);
-            } else {
-              qimg.appendChild(im);
-            }
+          var sizer = qimg.querySelector('div[style*="padding-bottom"]');
+          if (sizer) {
+            im.style.cssText =
+              'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0.07rem;z-index:1;';
+            qimg.style.position = 'relative';
+            qimg.appendChild(im);
           } else {
-            box.insertBefore(im, box.firstChild);
+            qimg.appendChild(im);
           }
         }
       }
@@ -175,20 +220,23 @@
   var t = null;
   function schedule() {
     clearTimeout(t);
-    t = setTimeout(scan, 100);
+    t = setTimeout(scan, 80);
   }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', schedule);
   } else schedule();
   window.addEventListener('load', schedule);
-  setTimeout(schedule, 300);
-  setTimeout(schedule, 1200);
-  setTimeout(schedule, 3000);
+  setTimeout(schedule, 200);
+  setTimeout(schedule, 800);
+  setTimeout(schedule, 2000);
+  setTimeout(schedule, 4000);
   try {
     new MutationObserver(schedule).observe(document.documentElement, {
       childList: true,
       subtree: true,
+      attributes: true,
+      attributeFilter: ['src', 'data-src'],
     });
   } catch (e) {}
 })();
