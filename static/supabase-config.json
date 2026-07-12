@@ -6,7 +6,7 @@
   "plan": "pro",
   "customUrl": "https://api.chinesinha777.bet",
   "customDomainReady": true,
-  "storageBucket": "public-assets",
+  "storageBucket": "web",
   "playerApi": "https://api.chinesinha777.bet/functions/v1/player-api",
   "adminApi": "https://api.chinesinha777.bet/functions/v1/admin-api",
   "authApi": "https://api.chinesinha777.bet/functions/v1/auth-api",
@@ -17,6 +17,9 @@
   "adminUrl": "https://chinesinha777.bet/admin/",
   "noVps": true,
   "noVercel": true,
-  "deployedAt": "2026-07-12T05:28:49.499Z",
-  "projectName": "aposta 777"
+  "onlyPro": true,
+  "org": "bet 777",
+  "projectName": "aposta 777",
+  "deployedAt": "2026-07-12T06:23:22.628Z",
+  "deployTarget": "supabase-storage-web"
 }
