@@ -1,93 +1,478 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Chinesinha777 Admin</title>
-  <style>
-    :root { font-family: system-ui, sans-serif; color: #e8e8e8; background: #0b0f14; }
-    body { max-width: 420px; margin: 8vh auto; padding: 24px; }
-    h1 { font-size: 1.25rem; margin: 0 0 8px; }
-    .sub { color: #8b9bb4; font-size: .9rem; margin-bottom: 24px; }
-    label { display:block; font-size:.8rem; margin:12px 0 4px; color:#aab; }
-    input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #243044; background:#121821; color:#fff; box-sizing:border-box; }
-    button { margin-top:16px; width:100%; padding:12px; border:0; border-radius:8px; background:linear-gradient(90deg,#f5b942,#e08a1e); color:#111; font-weight:700; cursor:pointer; }
-    .card { background:#121821; border:1px solid #243044; border-radius:12px; padding:20px; }
-    .msg { margin-top:12px; font-size:.85rem; min-height:1.2em; }
-    .ok { color:#6dffa8; }
-    .err { color:#ff7b7b; }
-    pre { background:#0b0f14; padding:12px; border-radius:8px; overflow:auto; font-size:.75rem; max-height:50vh; }
-    a { color:#f5b942; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Chinesinha777 Admin</title>
+<style>
+:root{
+  --bg:#0b0f14; --card:#121821; --line:#243044; --txt:#e8eef7; --mut:#8b9bb4;
+  --gold:#f5b942; --gold2:#e08a1e; --ok:#6dffa8; --err:#ff7b7b; --warn:#ffd166;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);min-height:100vh}
+a{color:var(--gold);text-decoration:none}
+button,input,select{font:inherit}
+.hidden{display:none!important}
+#loginView{max-width:420px;margin:8vh auto;padding:20px}
+#appView{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+@media(max-width:860px){
+  #appView{grid-template-columns:1fr}
+  #sidebar{position:fixed;inset:0 auto 0 0;width:min(280px,88vw);transform:translateX(-105%);z-index:40;transition:.2s}
+  #sidebar.open{transform:none}
+  #overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:30}
+  #overlay.show{display:block}
+  .topbar .menu{display:inline-flex!important}
+}
+#sidebar{background:#0e141c;border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:8px}
+.brand{font-weight:800;color:var(--gold);padding:8px 10px 14px;font-size:1rem}
+.navbtn{display:block;width:100%;text-align:left;padding:11px 12px;border:0;border-radius:10px;background:transparent;color:var(--txt);cursor:pointer}
+.navbtn:hover,.navbtn.active{background:#1a2433}
+.navbtn.active{color:var(--gold);font-weight:700}
+.side-foot{margin-top:auto;padding:12px 10px;border-top:1px solid var(--line);font-size:.85rem;color:var(--mut)}
+.side-foot button{width:100%;margin-top:8px}
+#main{min-width:0}
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:#0e141c;position:sticky;top:0;z-index:10}
+.topbar .menu{display:none;border:0;background:#1a2433;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+.topbar h1{font-size:1rem;margin:0;flex:1}
+.content{padding:16px;max-width:1100px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 12px;font-size:1rem;color:var(--gold)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:#0b1018;border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi .n{font-size:1.35rem;font-weight:800}
+.kpi .l{font-size:.75rem;color:var(--mut);margin-top:4px}
+label{display:block;font-size:.78rem;color:var(--mut);margin:10px 0 4px}
+input,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0b1018;color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 14px;border:0;border-radius:10px;cursor:pointer;font-weight:700}
+.btn-primary{background:linear-gradient(90deg,var(--gold),var(--gold2));color:#111;width:100%;margin-top:14px}
+.btn-sec{background:#1a2433;color:#fff}
+.btn-danger{background:#3a1515;color:#ffb4b4}
+.btn-sm{padding:7px 10px;font-size:.82rem;border-radius:8px}
+.msg{min-height:1.2em;margin-top:10px;font-size:.88rem}
+.msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:600;font-size:.75rem}
+.row-actions{display:flex;flex-wrap:wrap;gap:6px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:700}
+.badge.ok{background:rgba(109,255,168,.12);color:var(--ok)}
+.badge.warn{background:rgba(255,209,102,.12);color:var(--warn)}
+.badge.err{background:rgba(255,123,123,.12);color:var(--err)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:end}
+.toolbar > *{flex:1;min-width:140px}
+.muted{color:var(--mut);font-size:.85rem}
+pre{background:#0b1018;border:1px solid var(--line);border-radius:10px;padding:10px;overflow:auto;font-size:.75rem;max-height:280px}
+.sub{color:var(--mut);font-size:.9rem;margin:0 0 16px}
+</style>
 </head>
 <body>
+<div id="loginView">
   <div class="card">
-    <h1>Chinesinha777 Admin</h1>
-    <p class="sub">Supabase Edge · produção</p>
-    <div id="loginBox">
-      <label>E-mail</label>
-      <input id="email" type="email" value="admin@test.local" autocomplete="username"/>
-      <label>Senha</label>
-      <input id="pass" type="password" value="102030" autocomplete="current-password"/>
-      <button id="btn" type="button">Entrar</button>
-      <div class="msg" id="msg"></div>
+    <h2>Chinesinha777 Admin</h2>
+    <p class="sub">Painel de produção · Supabase Edge</p>
+    <label>E-mail</label>
+    <input id="email" type="email" value="admin@test.local" autocomplete="username"/>
+    <label>Senha</label>
+    <input id="pass" type="password" value="102030" autocomplete="current-password"/>
+    <button class="btn btn-primary" id="btnLogin" type="button">Entrar</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+  <p class="sub" style="text-align:center">Site: <a href="https://chinesinha777.bet" target="_blank" rel="noopener">chinesinha777.bet</a></p>
+</div>
+
+<div id="appView" class="hidden">
+  <div id="overlay"></div>
+  <aside id="sidebar">
+    <div class="brand">Chinesinha777</div>
+    <button class="navbtn active" data-view="dash">Dashboard</button>
+    <button class="navbtn" data-view="players">Jogadores</button>
+    <button class="navbtn" data-view="orders">Depósitos PIX</button>
+    <button class="navbtn" data-view="config">Chaves &amp; Provedores</button>
+    <div class="side-foot">
+      <div id="who">—</div>
+      <button class="btn btn-sec btn-sm" id="btnOut" type="button">Sair do painel</button>
     </div>
-    <div id="dash" style="display:none">
-      <p class="ok">Logado: <span id="who"></span></p>
-      <pre id="sum"></pre>
-      <button id="out" type="button">Sair</button>
+  </aside>
+  <div id="main">
+    <div class="topbar">
+      <button class="menu" id="btnMenu" type="button">☰</button>
+      <h1 id="viewTitle">Dashboard</h1>
+      <button class="btn btn-sec btn-sm" id="btnRefresh" type="button">Atualizar</button>
+    </div>
+    <div class="content">
+      <!-- DASH -->
+      <section id="view-dash">
+        <div class="grid" id="kpis"></div>
+        <div class="card" style="margin-top:14px">
+          <h2>Resumo operacional</h2>
+          <pre id="sumPre">Carregando…</pre>
+        </div>
+      </section>
+      <!-- PLAYERS -->
+      <section id="view-players" class="hidden">
+        <div class="card">
+          <h2>Jogadores</h2>
+          <div class="toolbar">
+            <div>
+              <label>Buscar</label>
+              <input id="playerQ" placeholder="código, telefone, e-mail, nome"/>
+            </div>
+            <button class="btn btn-sec" id="btnSearchPlayers" type="button">Buscar</button>
+          </div>
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>Código</th><th>Nome</th><th>Contato</th><th>Saldo</th><th>Bônus</th><th></th></tr></thead>
+              <tbody id="playersBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card hidden" id="playerDetail">
+          <h2>Ajuste de saldo · <span id="pdCode"></span></h2>
+          <div class="grid">
+            <div><label>Saldo absoluto (R$)</label><input id="pdBal" type="number" step="0.01"/></div>
+            <div><label>Bônus absoluto (R$)</label><input id="pdBon" type="number" step="0.01"/></div>
+            <div><label>Delta saldo</label><input id="pdDelta" type="number" step="0.01" placeholder="ex: 10 ou -5"/></div>
+            <div><label>Motivo</label><input id="pdReason" placeholder="ajuste manual"/></div>
+          </div>
+          <div class="row-actions" style="margin-top:12px">
+            <button class="btn btn-primary" style="width:auto" id="btnSaveBal" type="button">Salvar saldo</button>
+            <button class="btn btn-sec" id="btnLoadLedger" type="button">Ver extrato</button>
+          </div>
+          <div class="msg" id="pdMsg"></div>
+          <pre id="pdLedger" class="hidden"></pre>
+        </div>
+      </section>
+      <!-- ORDERS -->
+      <section id="view-orders" class="hidden">
+        <div class="card">
+          <h2>Depósitos PIX</h2>
+          <div class="toolbar">
+            <div>
+              <label>Status</label>
+              <select id="orderStatus">
+                <option value="">Todos</option>
+                <option value="pending">pending</option>
+                <option value="paid">paid</option>
+              </select>
+            </div>
+            <button class="btn btn-sec" id="btnLoadOrders" type="button">Filtrar</button>
+          </div>
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>Pedido</th><th>Jogador</th><th>Valor</th><th>Bônus</th><th>Status</th><th>Quando</th><th></th></tr></thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+          <div class="msg" id="ordMsg"></div>
+        </div>
+      </section>
+      <!-- CONFIG -->
+      <section id="view-config" class="hidden">
+        <div class="card">
+          <h2>Chaves &amp; integrações</h2>
+          <p class="muted">Valores mascarados do ambiente Edge (produção). DigitoPay e RoyalGames.</p>
+          <pre id="cfgPre">Carregando…</pre>
+          <div class="row-actions">
+            <button class="btn btn-sec" id="btnPingDp" type="button">Testar DigitoPay</button>
+            <button class="btn btn-sec" id="btnHealth" type="button">Health APIs</button>
+          </div>
+          <div class="msg" id="cfgMsg"></div>
+          <pre id="cfgExtra" class="hidden"></pre>
+        </div>
+      </section>
     </div>
   </div>
-  <p class="sub" style="margin-top:16px">
-    Site: <a href="https://chinesinha777.bet">chinesinha777.bet</a>
-  </p>
+</div>
+
 <script>
-const API = "https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/admin-api";
-const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0";
-const msg = (t, ok) => { const el=document.getElementById('msg'); el.textContent=t; el.className='msg '+(ok?'ok':'err'); };
-const headers = () => ({
-  'Content-Type': 'application/json',
-  'apikey': ANON,
-  'Authorization': 'Bearer ' + (localStorage.getItem('ch7_admin_token') || ANON),
-});
-async function loadSummary() {
-  const r = await fetch(API + '/summary', { headers: headers() });
-  const j = await r.json();
-  document.getElementById('sum').textContent = JSON.stringify(j, null, 2);
-}
-document.getElementById('btn').onclick = async () => {
-  msg('Entrando...', true);
-  const r = await fetch(API + '/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: 'Bearer ' + ANON },
-    body: JSON.stringify({ email: email.value.trim(), password: pass.value }),
-  });
-  const j = await r.json();
-  if (!j.ok) { msg(j.error || 'Falha', false); return; }
-  localStorage.setItem('ch7_admin_token', j.token);
-  document.getElementById('loginBox').style.display = 'none';
-  document.getElementById('dash').style.display = 'block';
-  document.getElementById('who').textContent = j.user.email + ' · ' + j.user.role;
-  msg('OK', true);
-  await loadSummary();
-};
-document.getElementById('out').onclick = () => {
-  localStorage.removeItem('ch7_admin_token');
-  location.reload();
-};
-if (localStorage.getItem('ch7_admin_token')) {
-  document.getElementById('loginBox').style.display = 'none';
-  document.getElementById('dash').style.display = 'block';
-  fetch(API + '/auth/me', { headers: headers() }).then(r=>r.json()).then(j=>{
-    if (j.ok) {
-      document.getElementById('who').textContent = j.user.email + ' · ' + j.user.role;
-      loadSummary();
-    } else {
-      localStorage.removeItem('ch7_admin_token');
-      location.reload();
+(function(){
+  var API = 'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/admin-api';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
+  var GOFUN = 'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/gofun';
+  var AUTH = 'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/auth-api';
+  var TOKEN_KEY = 'ch7_admin_token';
+  var view = 'dash';
+  var selectedPlayer = null;
+
+  function token(){ return localStorage.getItem(TOKEN_KEY) || ''; }
+  function setMsg(el, text, ok){ el.textContent = text||''; el.className = 'msg ' + (ok===true?'ok':ok===false?'err':''); }
+  function headers(json){
+    var h = { apikey: ANON, Authorization: 'Bearer ' + (token() || ANON) };
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+  }
+  async function api(path, opts){
+    opts = opts || {};
+    var r = await fetch(API + path, {
+      method: opts.method || 'GET',
+      headers: headers(!!opts.body),
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    var j = await r.json().catch(function(){ return {}; });
+    if (r.status === 401) { logout(false); throw new Error('Sessão expirada'); }
+    return j;
+  }
+  function money(n){ return Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function fmtDate(s){
+    if(!s) return '—';
+    try { return new Date(s).toLocaleString('pt-BR'); } catch(e){ return String(s); }
+  }
+
+  function showApp(on){
+    document.getElementById('loginView').classList.toggle('hidden', on);
+    document.getElementById('appView').classList.toggle('hidden', !on);
+  }
+  function logout(callApi){
+    var t = token();
+    localStorage.removeItem(TOKEN_KEY);
+    if (callApi && t) {
+      fetch(API + '/auth/logout', { method:'POST', headers: { apikey:ANON, Authorization:'Bearer '+t } }).catch(function(){});
     }
+    showApp(false);
+  }
+
+  async function login(){
+    var msg = document.getElementById('loginMsg');
+    setMsg(msg, 'Entrando…', true);
+    try {
+      var r = await fetch(API + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', apikey:ANON, Authorization:'Bearer '+ANON },
+        body: JSON.stringify({ email: email.value.trim(), password: pass.value })
+      });
+      var j = await r.json();
+      if (!j.ok) { setMsg(msg, j.error || 'Falha no login', false); return; }
+      localStorage.setItem(TOKEN_KEY, j.token);
+      document.getElementById('who').textContent = j.user.email + ' · ' + j.user.role;
+      showApp(true);
+      setMsg(msg, '', true);
+      await refresh();
+    } catch(e) {
+      setMsg(msg, e.message || 'Erro de rede', false);
+    }
+  }
+
+  function setView(name){
+    view = name;
+    ['dash','players','orders','config'].forEach(function(v){
+      document.getElementById('view-'+v).classList.toggle('hidden', v!==name);
+    });
+    document.querySelectorAll('.navbtn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-view')===name);
+    });
+    var titles = { dash:'Dashboard', players:'Jogadores', orders:'Depósitos PIX', config:'Chaves & Provedores' };
+    document.getElementById('viewTitle').textContent = titles[name] || name;
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+    refresh();
+  }
+
+  async function loadDash(){
+    var j = await api('/summary');
+    if (!j.ok) throw new Error(j.error||'summary fail');
+    var s = j.summary || {};
+    var items = [
+      ['Jogadores', s.players],
+      ['Depósitos', s.deposits],
+      ['Pendentes', s.pendingDeposits],
+      ['Pagos', s.paidDeposits],
+      ['Saldo total', 'R$ '+money(s.totalPlayerBalance)],
+      ['Bônus total', 'R$ '+money(s.totalPlayerBonus)],
+      ['Admins', s.adminUsers],
+    ];
+    document.getElementById('kpis').innerHTML = items.map(function(it){
+      return '<div class="kpi"><div class="n">'+it[1]+'</div><div class="l">'+it[0]+'</div></div>';
+    }).join('');
+    document.getElementById('sumPre').textContent = JSON.stringify(j, null, 2);
+  }
+
+  async function loadPlayers(){
+    var q = document.getElementById('playerQ').value.trim();
+    var j = await api('/players?limit=80' + (q ? '&q='+encodeURIComponent(q) : ''));
+    if (!j.ok) throw new Error(j.error||'players fail');
+    var tb = document.getElementById('playersBody');
+    tb.innerHTML = (j.players||[]).map(function(p){
+      return '<tr>'+
+        '<td><code>'+esc(p.userCode)+'</code></td>'+
+        '<td>'+esc(p.name||'—')+'</td>'+
+        '<td>'+esc(p.phone||'')+(p.email?'<br/>'+esc(p.email):'')+'</td>'+
+        '<td>R$ '+money(p.balance)+'</td>'+
+        '<td>R$ '+money(p.bonus)+'</td>'+
+        '<td><button class="btn btn-sec btn-sm" data-code="'+esc(p.userCode)+'" data-bal="'+p.balance+'" data-bon="'+p.bonus+'">Ajustar</button></td>'+
+      '</tr>';
+    }).join('') || '<tr><td colspan="6" class="muted">Nenhum jogador</td></tr>';
+    tb.querySelectorAll('button[data-code]').forEach(function(b){
+      b.onclick = function(){
+        selectedPlayer = b.getAttribute('data-code');
+        document.getElementById('playerDetail').classList.remove('hidden');
+        document.getElementById('pdCode').textContent = selectedPlayer;
+        document.getElementById('pdBal').value = b.getAttribute('data-bal') || '';
+        document.getElementById('pdBon').value = b.getAttribute('data-bon') || '';
+        document.getElementById('pdDelta').value = '';
+        document.getElementById('pdReason').value = 'ajuste painel';
+        document.getElementById('pdLedger').classList.add('hidden');
+        setMsg(document.getElementById('pdMsg'), '', true);
+      };
+    });
+  }
+
+  async function saveBalance(){
+    if (!selectedPlayer) return;
+    var body = { reason: document.getElementById('pdReason').value || 'ajuste painel' };
+    var bal = document.getElementById('pdBal').value;
+    var bon = document.getElementById('pdBon').value;
+    var delta = document.getElementById('pdDelta').value;
+    if (delta !== '') body.delta = Number(delta);
+    else if (bal !== '') body.balance = Number(bal);
+    if (bon !== '') body.bonus = Number(bon);
+    var j = await api('/players/'+encodeURIComponent(selectedPlayer)+'/balance', { method:'POST', body: body });
+    var msg = document.getElementById('pdMsg');
+    if (!j.ok) { setMsg(msg, j.error||'falha', false); return; }
+    setMsg(msg, 'Saldo atualizado: R$ '+money(j.player.balance)+' · bônus R$ '+money(j.player.bonus), true);
+    await loadPlayers();
+  }
+
+  async function loadLedger(){
+    if (!selectedPlayer) return;
+    var j = await api('/players/'+encodeURIComponent(selectedPlayer)+'/ledger');
+    var el = document.getElementById('pdLedger');
+    el.classList.remove('hidden');
+    el.textContent = JSON.stringify(j.ledger||j, null, 2);
+  }
+
+  async function loadOrders(){
+    var st = document.getElementById('orderStatus').value;
+    var j = await api('/orders?limit=80' + (st ? '&status='+encodeURIComponent(st) : ''));
+    if (!j.ok) throw new Error(j.error||'orders fail');
+    var tb = document.getElementById('ordersBody');
+    tb.innerHTML = (j.orders||[]).map(function(o){
+      var badge = o.status==='paid' ? 'ok' : (o.status==='pending'?'warn':'err');
+      var actions = o.status==='pending' && !o.credited
+        ? '<button class="btn btn-sec btn-sm" data-credit="'+esc(o.id)+'">Creditar</button>'
+        : '—';
+      return '<tr>'+
+        '<td><code>'+esc(o.id)+'</code></td>'+
+        '<td>'+esc(o.userCode)+'</td>'+
+        '<td>R$ '+money(o.amountReais)+'</td>'+
+        '<td>R$ '+money(o.bonusReais)+'</td>'+
+        '<td><span class="badge '+badge+'">'+esc(o.status)+'</span></td>'+
+        '<td>'+fmtDate(o.createdAt)+'</td>'+
+        '<td class="row-actions">'+actions+'</td>'+
+      '</tr>';
+    }).join('') || '<tr><td colspan="7" class="muted">Nenhum depósito</td></tr>';
+    tb.querySelectorAll('button[data-credit]').forEach(function(b){
+      b.onclick = async function(){
+        var id = b.getAttribute('data-credit');
+        if (!confirm('Creditar manualmente o pedido '+id+'?')) return;
+        try {
+          var j = await api('/orders/'+encodeURIComponent(id)+'/credit', { method:'POST', body:{} });
+          setMsg(document.getElementById('ordMsg'), j.ok ? 'Creditado' : (j.error||'falha'), !!j.ok);
+          await loadOrders();
+          if (view==='dash') await loadDash();
+        } catch(e) {
+          setMsg(document.getElementById('ordMsg'), e.message, false);
+        }
+      };
+    });
+  }
+
+  async function loadConfig(){
+    var j = await api('/config/status');
+    document.getElementById('cfgPre').textContent = JSON.stringify(j.config || j, null, 2);
+  }
+
+  async function pingDigitopay(){
+    var msg = document.getElementById('cfgMsg');
+    setMsg(msg, 'Testando DigitoPay…', true);
+    try {
+      var j = await api('/digitopay/ping');
+      setMsg(msg, j.ok ? 'DigitoPay OK' : (j.error||j.message||'Falha'), !!j.ok);
+      var ex = document.getElementById('cfgExtra');
+      ex.classList.remove('hidden');
+      ex.textContent = JSON.stringify(j, null, 2);
+    } catch(e) {
+      setMsg(msg, e.message, false);
+    }
+  }
+
+  async function healthApis(){
+    var msg = document.getElementById('cfgMsg');
+    setMsg(msg, 'Checando…', true);
+    var out = {};
+    try {
+      out.admin = await (await fetch(API+'/health',{headers:{apikey:ANON,Authorization:'Bearer '+ANON}})).json();
+    } catch(e){ out.admin = { ok:false, error:e.message }; }
+    try {
+      out.auth = await (await fetch(AUTH+'/health',{headers:{apikey:ANON,Authorization:'Bearer '+ANON}})).json();
+    } catch(e){ out.auth = { ok:false, error:e.message }; }
+    try {
+      // gofun sys/config encrypted — just hit health-ish via OPTIONS or empty
+      var gr = await fetch(GOFUN+'/v2/sys/config',{method:'POST',headers:{'Content-Type':'text/plain',apikey:ANON,Authorization:'Bearer '+ANON},body:'e30='});
+      out.gofun = { ok: gr.status===200, status: gr.status };
+    } catch(e){ out.gofun = { ok:false, error:e.message }; }
+    var ex = document.getElementById('cfgExtra');
+    ex.classList.remove('hidden');
+    ex.textContent = JSON.stringify(out, null, 2);
+    setMsg(msg, 'Health atualizado', true);
+  }
+
+  async function refresh(){
+    try {
+      if (view==='dash') await loadDash();
+      if (view==='players') await loadPlayers();
+      if (view==='orders') await loadOrders();
+      if (view==='config') await loadConfig();
+    } catch(e) {
+      console.error(e);
+      if (String(e.message||'').indexOf('Sessão')>=0) return;
+      alert(e.message||String(e));
+    }
+  }
+
+  function esc(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  }
+
+  // wire
+  document.getElementById('btnLogin').onclick = login;
+  document.getElementById('pass').addEventListener('keydown', function(e){ if(e.key==='Enter') login(); });
+  document.getElementById('btnOut').onclick = function(){ logout(true); };
+  document.getElementById('btnRefresh').onclick = refresh;
+  document.getElementById('btnSearchPlayers').onclick = loadPlayers;
+  document.getElementById('btnSaveBal').onclick = saveBalance;
+  document.getElementById('btnLoadLedger').onclick = loadLedger;
+  document.getElementById('btnLoadOrders').onclick = loadOrders;
+  document.getElementById('btnPingDp').onclick = pingDigitopay;
+  document.getElementById('btnHealth').onclick = healthApis;
+  document.querySelectorAll('.navbtn').forEach(function(b){
+    b.onclick = function(){ setView(b.getAttribute('data-view')); };
   });
-}
+  document.getElementById('btnMenu').onclick = function(){
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('show');
+  };
+  document.getElementById('overlay').onclick = function(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  };
+
+  // boot session
+  (async function(){
+    if (!token()) return;
+    try {
+      var j = await api('/auth/me');
+      if (j.ok) {
+        document.getElementById('who').textContent = j.user.email + ' · ' + j.user.role;
+        showApp(true);
+        await refresh();
+      } else logout(false);
+    } catch(e) { logout(false); }
+  })();
+})();
 </script>
 </body>
 </html>
