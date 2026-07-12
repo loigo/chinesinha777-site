@@ -1,13 +1,18 @@
 /**
- * Auth validação v15 — login/cadastro responsivo + smart fields.
- * Cadastro: Nome Completo, E-mail, Telefone, Senha.
- * Login: E-mail OU Telefone + Senha.
+ * Auth validação v19 — profissional (segurança + glass UI).
+ * Login: E-mail ou Telefone + Senha, validação em tempo real, CTA Entrar azul.
+ * Cadastro: Nome, E-mail, Telefone (+55), Senha forte, Registrar-se amarelo, texto 18+.
+ * Design: dark glassmorphism, pills, campos alinhados, mobile-first.
  * CRÍTICO: NUNCA montar form em .q-dialog genérico (lottery/reward).
- * CRÍTICO: promove loginDialog; limita card (não fullscreen gigante).
  */
 (function () {
   'use strict';
-  if (window.__ch7RegisterFieldsV15) return;
+  if (window.__ch7RegisterFieldsV20) return;
+  window.__ch7RegisterFieldsV20 = 1;
+  window.__ch7RegisterFieldsV19 = 1;
+  window.__ch7RegisterFieldsV18 = 1;
+  window.__ch7RegisterFieldsV17 = 1;
+  window.__ch7RegisterFieldsV16 = 1;
   window.__ch7RegisterFieldsV15 = 1;
   window.__ch7RegisterFieldsV14 = 1;
   window.__ch7RegisterFieldsV13 = 1;
@@ -15,23 +20,36 @@
   window.__ch7RegisterFieldsV9 = 1;
   window.__ch7RegisterFieldsV8 = 1;
 
-  var STYLE_ID = 'ch7-reg-v15-style';
+  /** Cadastro multi-campo ch7 (validação forte + UX profissional) */
+  var USE_CUSTOM_REGISTER = true;
+
+  var STYLE_ID = 'ch7-reg-v20-style';
+  var AGE_COPY =
+    'Ao acessar o site, confirmo que tenho 18 anos e li os termos';
   var FORM_ID = 'ch7-reg-full-form';
   var LOGIN_ERR_ID = 'ch7-login-id-err';
+  var LOGIN_PASS_ERR_ID = 'ch7-login-pass-err';
   var EDGE =
     window.__CH7_GOFUN_EDGE__ ||
-    'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/gofun';
+    'https://vcohnsuomswwfxqlmllm.supabase.co/functions/v1/gofun';
   var ANON =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
   var CRYPTO_KEY = '9EzYC7IZE1PTREu8';
   var lastMode = null;
   var submitting = false;
   var MSG = {
-    emptyId: 'Informe e-mail ou telefone',
-    email: 'E-mail inválido',
-    phone: 'Número de telefone inválido (use DDD + número)',
-    name: 'Informe o nome completo',
-    pass: 'A senha deve ter no mínimo 6 caracteres.',
+    emptyId: 'Informe e-mail ou telefone com DDD',
+    email: 'Digite um e-mail válido (ex: nome@email.com)',
+    phone: 'Telefone inválido. Use DDD + número (11 dígitos)',
+    phoneShort: 'Complete o telefone com DDD',
+    name: 'Informe seu nome completo (mín. 3 letras)',
+    nameShort: 'Nome muito curto',
+    pass: 'Senha fraca: use 8+ caracteres, com letra e número',
+    passLogin: 'Informe sua senha (mínimo 6 caracteres)',
+    passMatch: 'As senhas não conferem',
+    dup: 'Telefone ou e-mail já cadastrado. Faça login.',
+    network: 'Erro de conexão. Verifique a internet e tente de novo.',
+    generic: 'Não foi possível concluir. Tente novamente.',
   };
 
   function onlyDigits(s) {
@@ -48,13 +66,21 @@
   }
 
   function isEmail(s) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+    var e = String(s || '').trim().toLowerCase();
+    // rejeita espaços, pontos duplos, domínio sem TLD
+    if (!e || e.length > 80) return false;
+    if (/\s/.test(e)) return false;
+    if (/\.\./.test(e)) return false;
+    return /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/i.test(e);
   }
 
   function isPhoneBR(s) {
     var d = onlyDigits(s);
     if ((d.length === 12 || d.length === 13) && d.indexOf('55') === 0) d = d.slice(2);
-    return d.length === 10 || d.length === 11;
+    // celular 11 (9xxxx) ou fixo 10
+    if (d.length === 11) return /^[1-9]{2}9\d{8}$/.test(d);
+    if (d.length === 10) return /^[1-9]{2}[2-5]\d{7}$/.test(d);
+    return false;
   }
 
   function normalizePhone(s) {
@@ -63,8 +89,27 @@
     return d;
   }
 
-  function strongPass(s) {
+  /** Login: backend aceita 6+. Cadastro: senha forte (8+ letra e número). */
+  function loginPassOk(s) {
     return String(s || '').length >= 6;
+  }
+  function strongPass(s) {
+    var p = String(s || '');
+    if (p.length < 8) return false;
+    if (!/[A-Za-zÀ-ú]/.test(p)) return false;
+    if (!/\d/.test(p)) return false;
+    // bloqueia senhas óbvias
+    if (/^(12345678|password|senha123|abcdefgh|11111111|00000000)$/i.test(p)) return false;
+    return true;
+  }
+  function passStrengthLabel(s) {
+    var p = String(s || '');
+    if (!p) return '';
+    if (p.length < 6) return 'Muito fraca';
+    if (!strongPass(p)) return 'Fraca — use 8+ com letra e número';
+    if (p.length >= 10 && /[A-Z]/.test(p) && /[a-z]/.test(p) && /\d/.test(p) && /[^A-Za-z0-9]/.test(p))
+      return 'Forte';
+    return 'Boa';
   }
 
   /** @returns {true|string} */
@@ -73,6 +118,8 @@
     var kind = detectIdentity(s);
     if (kind === 'empty') return MSG.emptyId;
     if (kind === 'email') return isEmail(s) || MSG.email;
+    var d = onlyDigits(s);
+    if (d.length > 0 && d.length < 10) return MSG.phoneShort;
     return isPhoneBR(s) || MSG.phone;
   }
 
@@ -83,6 +130,10 @@
         'ch7-reg-v9-style',
         'ch7-reg-v13-style',
         'ch7-reg-v14-style',
+        'ch7-reg-v16-style',
+        'ch7-reg-v17-style',
+        'ch7-reg-v18-style',
+        'ch7-reg-v19-style',
       ];
       for (var oi = 0; oi < oldIds.length; oi++) {
         var oldEl = document.getElementById(oldIds[oi]);
@@ -95,7 +146,7 @@
     var rootSel =
       '.login-dialog-container.ch7-reg-mode, .login-dialog.ch7-reg-mode, .login-dialog-card.ch7-reg-mode';
     s.textContent =
-      /* ── Login/Register card: compacto e responsivo (não fullscreen) ── */
+      /* ── Card glass dark ── */
       '.q-dialog.dialogBox .q-dialog__inner,' +
       '.q-dialog--modal.dialogBox .q-dialog__inner{' +
       'padding:12px!important;align-items:center!important;justify-content:center!important;' +
@@ -107,49 +158,105 @@
       '.login-dialog,' +
       '.login-dialog-card{' +
       'width:min(400px,92vw)!important;max-width:400px!important;' +
-      'max-height:min(90vh,640px)!important;height:auto!important;min-height:0!important;' +
+      'max-height:min(90vh,680px)!important;height:auto!important;min-height:0!important;' +
       'margin:0 auto!important;overflow-x:hidden!important;overflow-y:auto!important;' +
-      'border-radius:16px!important;box-sizing:border-box!important;' +
+      'border-radius:20px!important;box-sizing:border-box!important;' +
+      'border:1px solid rgba(255,255,255,.1)!important;' +
+      'box-shadow:0 24px 64px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06)!important;' +
+      'backdrop-filter:blur(18px) saturate(1.2)!important;-webkit-backdrop-filter:blur(18px) saturate(1.2)!important;' +
       '-webkit-overflow-scrolling:touch;}' +
       '.login-dialog-card{' +
-      'display:flex!important;flex-direction:column!important;background:#1a1814!important;}' +
-      '.login_bg_wrapper{max-height:110px!important;min-height:0!important;overflow:hidden!important;flex:0 0 auto!important;}' +
-      '.login_bg_wrapper .login_bg, .login-dialog-card img.login_bg{' +
-      'max-height:110px!important;width:100%!important;object-fit:cover!important;display:block!important;}' +
+      'display:flex!important;flex-direction:column!important;' +
+      'background:linear-gradient(165deg,rgba(36,34,40,.96) 0%,rgba(18,17,22,.98) 55%,rgba(12,11,14,.99) 100%)!important;}' +
+      /* Banner "Depósito Bônus Diário" — completo, sem corte */
+      '.login_bg_wrapper,' +
+      '.login-dialog-card .login_bg_wrapper,' +
+      '.login-dialog-container .login_bg_wrapper{' +
+      'max-height:none!important;height:auto!important;min-height:0!important;' +
+      'overflow:hidden!important;flex:0 0 auto!important;width:100%!important;' +
+      'line-height:0!important;border-radius:20px 20px 0 0!important;}' +
+      '.login_bg_wrapper .login_bg,' +
+      '.login-dialog-card img.login_bg,' +
+      '.login-dialog-container img.login_bg,' +
+      '.login-dialog img.login_bg,' +
+      'img.login_bg{' +
+      'max-height:none!important;height:auto!important;width:100%!important;' +
+      'max-width:100%!important;object-fit:contain!important;object-position:center top!important;' +
+      'display:block!important;vertical-align:top!important;}' +
       '.login-dialog-container .form-section, .login-dialog .form-section{' +
-      'padding:12px 16px 18px!important;margin:0!important;height:auto!important;max-height:none!important;' +
+      'padding:14px 18px 10px!important;margin:0!important;height:auto!important;max-height:none!important;' +
       'flex:1 1 auto!important;overflow:visible!important;box-sizing:border-box!important;}' +
       '.login-dialog-container .submit-section, .login-dialog .submit-section{' +
-      'padding:0 16px 16px!important;margin:0!important;height:auto!important;}' +
+      'padding:4px 18px 18px!important;margin:0!important;height:auto!important;}' +
       '.login-dialog-container .title-section, .login-dialog .title-section,' +
       '.login-dialog-container .tabs, .login-dialog .tabs{' +
-      'padding:8px 12px 0!important;height:auto!important;min-height:0!important;}' +
-      /* esconde +55 no login smart (placeholder já cobre e-mail/telefone) */
+      'padding:10px 14px 0!important;height:auto!important;min-height:0!important;}' +
+      /* esconde +55 no login smart */
       '.login-dialog-container.ch7-smart-id .country-code,' +
       '.login-dialog-container.ch7-login-email-mode .country-code,' +
       '.login-dialog.ch7-smart-id .country-code{' +
       'display:none!important;width:0!important;height:0!important;overflow:hidden!important;' +
       'margin:0!important;padding:0!important;}' +
+      /* campos glass */
       '.login-dialog-container .q-field, .login-dialog .q-field,' +
+      '.login-dialog-container .form-section .q-field{' +
+      'width:100%!important;margin:0 0 10px!important;}' +
       '.login-dialog-container .q-field__control, .login-dialog .q-field__control{' +
-      'min-height:48px!important;height:auto!important;}' +
+      'min-height:50px!important;height:auto!important;border-radius:14px!important;' +
+      'background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12)!important;' +
+      'padding:0 12px!important;transition:border-color .15s,box-shadow .15s!important;}' +
+      '.login-dialog-container .q-field--focused .q-field__control,' +
+      '.login-dialog .q-field--focused .q-field__control{' +
+      'border-color:rgba(91,140,255,.55)!important;box-shadow:0 0 0 3px rgba(91,140,255,.15)!important;}' +
       '.login-dialog-container input, .login-dialog input{' +
-      'font-size:15px!important;max-width:100%!important;}' +
+      'font-size:15px!important;max-width:100%!important;color:#f5f5f7!important;}' +
+      '.login-dialog-container input::placeholder, .login-dialog input::placeholder{' +
+      'color:rgba(255,255,255,.4)!important;}' +
       '.login-dialog-container .forgot, .login-dialog .forgot,' +
       '.login-dialog-container .forgot a, .login-dialog .forgot a{' +
       'font-size:13px!important;color:#f6cf87!important;text-align:right!important;' +
       'padding:6px 4px 10px!important;cursor:pointer!important;}' +
+      /* CTA pills */
       '.login-dialog-container .submit-section .q-btn, .login-dialog .submit-section .q-btn,' +
-      '.login-dialog-container button.q-btn.full-width{' +
-      'min-height:48px!important;border-radius:12px!important;font-weight:800!important;}' +
-      /* mobile safe */
+      '.login-dialog-container button.q-btn.full-width:not(.ch7-submit){' +
+      'min-height:50px!important;border-radius:999px!important;font-weight:800!important;' +
+      'font-size:17px!important;letter-spacing:.02em!important;border:0!important;' +
+      'transition:transform .12s,filter .12s!important;}' +
+      '.login-dialog-container:not(.ch7-reg-mode) .submit-section .q-btn,' +
+      '.login-dialog:not(.ch7-reg-mode) .submit-section .q-btn,' +
+      '.login-dialog-container:not(.ch7-reg-mode) button.q-btn.full-width:not(.ch7-submit){' +
+      'background:linear-gradient(180deg,#6b9bff 0%,#4b62ed 48%,#3a4fd4 100%)!important;' +
+      'color:#fff!important;box-shadow:0 10px 28px rgba(59,98,237,.4)!important;}' +
+      '.login-dialog-container.ch7-native-reg .submit-section .q-btn,' +
+      '.login-dialog.ch7-native-reg .submit-section .q-btn{' +
+      'background:linear-gradient(180deg,#ffe566,#f0b429 55%,#d4920a)!important;' +
+      'color:#1a1208!important;box-shadow:0 10px 28px rgba(240,180,41,.35)!important;border-radius:999px!important;}' +
+      /* erros legíveis */
+      '#' + LOGIN_ERR_ID + ',#' + LOGIN_PASS_ERR_ID + '{' +
+      'display:none;color:#ff9b9b;font-size:12.5px;line-height:1.4;padding:2px 4px 6px;}' +
+      '#' + LOGIN_ERR_ID + '.show,#' + LOGIN_PASS_ERR_ID + '.show{display:block;}' +
+      /* texto 18 anos */
+      '.login-dialog-container .agreement, .login-dialog .agreement,' +
+      '.login-dialog-container .register, .login-dialog .register,' +
+      '.login-dialog-container .bonus-text, .login-dialog .bonus-text,' +
+      '.login-dialog-container .ch7-age,#' + FORM_ID + ' .ch7-age{' +
+      'font-size:12px!important;line-height:1.5!important;color:rgba(255,255,255,.58)!important;' +
+      'text-align:center!important;padding:10px 10px 6px!important;white-space:normal!important;' +
+      'word-break:normal!important;overflow:visible!important;max-width:100%!important;}' +
+      '.header-content .loginRegister,' +
+      '.header-content .login-register,' +
+      '.header-content [class*="loginRegister"]{' +
+      'display:flex!important;align-items:center!important;gap:6px!important;}' +
       '@media (max-width:480px){' +
       '.q-dialog.dialogBox .login-dialog-container,' +
       '.q-dialog.dialogBox .login-dialog,' +
       '.q-dialog.dialogBox .login-dialog-card{' +
-      'width:min(400px,94vw)!important;max-height:88vh!important;border-radius:14px!important;}' +
-      '.login_bg_wrapper{max-height:90px!important;}' +
-      '.login_bg_wrapper .login_bg{max-height:90px!important;}' +
+      'width:min(400px,94vw)!important;max-height:92vh!important;border-radius:16px!important;}' +
+      '.login_bg_wrapper,.login-dialog-card .login_bg_wrapper{' +
+      'max-height:none!important;border-radius:16px 16px 0 0!important;}' +
+      '.login_bg_wrapper .login_bg,img.login_bg{' +
+      'max-height:none!important;height:auto!important;object-fit:contain!important;}' +
+      '.login-dialog-container .submit-section .q-btn{min-height:48px!important;font-size:16px!important;}' +
       '}' +
       /* Cadastro: esconde TUDO nativo do SPA — só form ch7 + botão dourado */
       rootSel +
@@ -300,23 +407,53 @@
       '#' +
       FORM_ID +
       ' .ch7-submit{' +
-      'width:100%;margin-top:4px;padding:14px 16px;border:0;border-radius:12px;cursor:pointer;' +
+      'width:100%;margin-top:6px;padding:14px 16px;border:0;border-radius:999px;cursor:pointer;' +
       'font:800 16px/1.2 system-ui,sans-serif;color:#1a1208;' +
       'background:linear-gradient(180deg,#ffe566 0%,#f0b429 55%,#d4920a 100%);' +
-      'box-shadow:0 6px 18px rgba(240,180,41,.28);letter-spacing:.02em;}' +
+      'box-shadow:0 10px 28px rgba(240,180,41,.35);letter-spacing:.02em;' +
+      'transition:transform .12s,filter .12s;}' +
       '#' +
       FORM_ID +
-      ' .ch7-submit:disabled{opacity:.6;cursor:wait;}' +
+      ' .ch7-submit:hover{filter:brightness(1.05);}' +
       '#' +
       FORM_ID +
-      ' .ch7-hint{font-size:11.5px;color:rgba(255,255,255,.45);padding:0 4px;}' +
+      ' .ch7-submit:active{transform:scale(.98);}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-submit:disabled{opacity:.6;cursor:wait;transform:none;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-hint{display:none!important;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-age{' +
+      'display:block!important;visibility:visible!important;opacity:1!important;' +
+      'height:auto!important;min-height:0!important;max-height:none!important;' +
+      'font-size:12px!important;line-height:1.5!important;color:rgba(255,255,255,.58)!important;' +
+      'text-align:center!important;padding:10px 8px 2px!important;margin:0!important;' +
+      'white-space:normal!important;word-break:normal!important;overflow:visible!important;' +
+      'pointer-events:auto!important;box-sizing:border-box!important;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-strength{font-size:11.5px;line-height:1.3;padding:0 4px 4px;color:rgba(255,255,255,.45);}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-strength.weak{color:#ff9b9b;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-strength.ok{color:#9dffb0;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7-strength.strong{color:#7bfe7c;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7f{' +
+      'background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12)!important;' +
+      'border-radius:14px!important;min-height:50px!important;}' +
+      '#' +
+      FORM_ID +
+      ' .ch7f:focus-within{border-color:rgba(246,207,135,.5)!important;box-shadow:0 0 0 3px rgba(246,207,135,.12)!important;}' +
       '.login-dialog-container.ch7-login-email-mode .country-code{display:none!important;}' +
-      '#' +
-      LOGIN_ERR_ID +
-      '{display:none;color:#ff9b9b;font-size:12.5px;line-height:1.35;padding:4px 2px 0;}' +
-      '#' +
-      LOGIN_ERR_ID +
-      '.show{display:block;}' +
       '.login-dialog-container.ch7-login-email-mode .q-field__messages,' +
       '.login-dialog-container.ch7-login-email-mode .q-field__bottom{color:#ff9b9b;}' +
       '.login-dialog-container.ch7-smart-id input{max-width:100%;}';
@@ -513,7 +650,9 @@
     if (key === 'name') {
       var n = String(data.name || '').trim();
       if (!n) return setFieldState('name', '');
-      setFieldState('name', n.length < 3 ? MSG.name : '');
+      if (n.length < 3) setFieldState('name', MSG.nameShort);
+      else if (!/^[A-Za-zÀ-ú\s'.-]{3,60}$/.test(n)) setFieldState('name', MSG.name);
+      else setFieldState('name', '');
       return;
     }
     if (key === 'email') {
@@ -530,6 +669,14 @@
     }
     if (key === 'pass') {
       var pw = String(data.pass || '');
+      var st = document.querySelector('#' + FORM_ID + ' .ch7-strength');
+      if (st) {
+        var lab = passStrengthLabel(pw);
+        st.textContent = lab ? 'Senha: ' + lab : '';
+        st.className =
+          'ch7-strength' +
+          (!pw ? '' : strongPass(pw) ? (lab === 'Forte' ? ' strong' : ' ok') : ' weak');
+      }
       if (!pw) return setFieldState('pass', '');
       setFieldState('pass', strongPass(pw) ? '' : MSG.pass);
     }
@@ -537,9 +684,10 @@
 
   function validate(data) {
     var name = String(data.name || '').trim();
-    if (name.length < 3) {
-      setFieldState('name', MSG.name);
-      setErr(document.getElementById('ch7f-name') && document.getElementById('ch7f-name').parentElement, MSG.name);
+    if (name.length < 3 || !/^[A-Za-zÀ-ú\s'.-]{3,60}$/.test(name)) {
+      var nm = name.length < 3 ? MSG.nameShort : MSG.name;
+      setFieldState('name', nm);
+      setErr(document.getElementById('ch7f-name') && document.getElementById('ch7f-name').parentElement, nm);
       return false;
     }
     setFieldState('name', '');
@@ -550,8 +698,9 @@
     }
     setFieldState('email', '');
     if (!isPhoneBR(data.phone)) {
-      setFieldState('phone', MSG.phone);
-      setErr(document.getElementById('ch7f-phone') && document.getElementById('ch7f-phone').parentElement, MSG.phone);
+      var pe = onlyDigits(data.phone).length > 0 && onlyDigits(data.phone).length < 10 ? MSG.phoneShort : MSG.phone;
+      setFieldState('phone', pe);
+      setErr(document.getElementById('ch7f-phone') && document.getElementById('ch7f-phone').parentElement, pe);
       return false;
     }
     setFieldState('phone', '');
@@ -715,15 +864,16 @@
         }, 400);
         return;
       }
-      var msg = (j && j.msg) || 'Não foi possível registrar. Tente de novo.';
-      if (/already exists|já cadastrad|30103/i.test(msg)) {
-        msg = 'Telefone ou e-mail já cadastrado. Faça login.';
+      var msg = (j && j.msg) || MSG.generic;
+      if (/already exists|já cadastrad|30103|duplicate|exists/i.test(msg + ' ' + (j && j.code))) {
+        msg = MSG.dup;
       }
+      if (/password|senha/i.test(msg) && /short|mín|min|6|8/i.test(msg)) msg = MSG.pass;
       setErr(null, msg);
       toast(msg, false);
     } catch (e) {
-      setErr(null, 'Erro de conexão. Tente novamente.');
-      toast('Erro de conexão. Tente novamente.', false);
+      setErr(null, MSG.network);
+      toast(MSG.network, false);
     } finally {
       submitting = false;
       if (btn) {
@@ -762,7 +912,7 @@
     });
     var passF = field('🔒', {
       key: 'pass',
-      placeholder: 'Senha (mín. 6 caracteres)',
+      placeholder: 'Senha (8+ letras e números)',
       autocomplete: 'new-password',
       type: 'password',
     });
@@ -806,16 +956,17 @@
     err.className = 'ch7-err';
     err.setAttribute('role', 'alert');
 
-    var hint = document.createElement('div');
-    hint.className = 'ch7-hint';
-    hint.textContent = 'Nome, e-mail, telefone com DDD e senha (mín. 6).';
-
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'ch7-submit';
     btn.id = 'ch7f-submit';
     btn.textContent = 'Registrar-se';
     btn.addEventListener('click', onSubmit);
+
+    var age = document.createElement('div');
+    age.className = 'ch7-age';
+    age.setAttribute('data-ch7-age', '1');
+    age.textContent = AGE_COPY;
 
     [nameF, emailF, phoneF, passF].forEach(function (f) {
       f.input.addEventListener('keydown', function (e) {
@@ -829,11 +980,16 @@
     form.appendChild(emailF.msg);
     form.appendChild(phoneF.wrap);
     form.appendChild(phoneF.msg);
+    var strength = document.createElement('div');
+    strength.className = 'ch7-strength';
+    strength.setAttribute('aria-live', 'polite');
+
     form.appendChild(passF.wrap);
     form.appendChild(passF.msg);
+    form.appendChild(strength);
     form.appendChild(err);
-    form.appendChild(hint);
     form.appendChild(btn);
+    form.appendChild(age);
     return form;
   }
 
@@ -854,6 +1010,7 @@
     if (existing && section.contains(existing)) {
       root.classList.add('ch7-reg-mode');
       hideNativeRegisterButtons(root);
+      ensureRegisterAge(existing);
       return;
     }
     if (existing) {
@@ -1050,26 +1207,238 @@
     }
   }
 
+  /** Garante texto de idade no form de cadastro ch7 (abaixo do botão). */
+  function ensureRegisterAge(form) {
+    if (!form) form = document.getElementById(FORM_ID);
+    if (!form) return;
+    try {
+      // remove hint técnico antigo
+      var hints = form.querySelectorAll('.ch7-hint');
+      for (var h = 0; h < hints.length; h++) {
+        try {
+          hints[h].remove();
+        } catch (e0) {}
+      }
+      var age = form.querySelector('.ch7-age');
+      if (!age) {
+        age = document.createElement('div');
+        age.className = 'ch7-age';
+        age.setAttribute('data-ch7-age', '1');
+        form.appendChild(age);
+      }
+      if (age.textContent !== AGE_COPY) age.textContent = AGE_COPY;
+      // sempre por último (abaixo do Registrar-se)
+      var btn = form.querySelector('.ch7-submit, #ch7f-submit');
+      if (btn && age.previousElementSibling !== btn) {
+        try {
+          form.appendChild(age);
+        } catch (e1) {}
+      }
+    } catch (e) {}
+  }
+
+  function isBrokenAgeText(t) {
+    if (!t) return false;
+    // SPA rioslots costuma vir: "Ao acassar osite,confirmo que tenho 18anos e li os"
+    return (
+      /18\s*anos|18anos|confirmo\s*que\s*tenho|acassar|acessar\s*o/i.test(t) &&
+      t.length < 130 &&
+      !/PARAB|GANHOU|CONGRATS|SLOT DA SORTE|Descric/i.test(t)
+    );
+  }
+
+  /** Texto de idade + termos (SPA costuma vir sem espaços / truncado). */
+  function polishAgeCopy(root) {
+    if (!root) return;
+    try {
+      ensureRegisterAge(document.getElementById(FORM_ID));
+      var nodes = root.querySelectorAll(
+        '.agreement, .register, .bonus-text, .bonus, p, span, label, div, a',
+      );
+      for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        if (!el) continue;
+        // form ch7 já tem .ch7-age
+        if (el.classList && el.classList.contains('ch7-age')) {
+          if (el.textContent !== AGE_COPY) el.textContent = AGE_COPY;
+          continue;
+        }
+        if (el.closest && el.closest('#' + FORM_ID) && !el.classList.contains('ch7-age')) continue;
+        if (el.closest && el.closest('.submit-section, button, .q-btn, .q-field, input')) continue;
+        var t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!t || t.length > 120) continue;
+        if (!isBrokenAgeText(t) && !/18\s*anos|confirmo que tenho|Ao acessar/i.test(t)) continue;
+        if (/PARAB|GANHOU|CONGRATS|SLOT DA SORTE|Descric/i.test(t)) continue;
+        // já correto?
+        if (t === AGE_COPY || t.indexOf(AGE_COPY) === 0) continue;
+        // não quebrar blocos com muitos filhos (exceto agreement com link)
+        if (el.children && el.children.length > 2) continue;
+        var a = el.querySelector && el.querySelector('a');
+        if (a && el.children.length <= 2) {
+          var before = 'Ao acessar o site, confirmo que tenho 18 anos e li os ';
+          while (el.firstChild) el.removeChild(el.firstChild);
+          el.appendChild(document.createTextNode(before));
+          a.textContent = a.textContent && /termo/i.test(a.textContent) ? a.textContent : 'termos';
+          el.appendChild(a);
+        } else if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
+          el.childNodes[0].nodeValue = AGE_COPY;
+        } else if (!el.querySelector('input,button,.q-btn')) {
+          el.textContent = AGE_COPY;
+        }
+      }
+    } catch (e) {}
+  }
+
+  /** CTA principal do dialog: "Login" → "Entrar" (azul via CSS). */
+  function polishLoginCta(root) {
+    if (!root) return;
+    try {
+      var btns = root.querySelectorAll(
+        '.submit-section .q-btn, .submit-section button, button.q-btn.full-width, .form-section > .q-btn',
+      );
+      for (var i = 0; i < btns.length; i++) {
+        var btn = btns[i];
+        if (btn.closest('#' + FORM_ID) || btn.classList.contains('ch7-submit')) continue;
+        var t = (btn.innerText || btn.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!/^Login$|^Entrar$|^Sign\s*in$/i.test(t)) continue;
+        // Quasar: texto em .q-btn__content span
+        var span =
+          btn.querySelector('.q-btn__content > span:not(.q-spinner):not(.q-icon)') ||
+          btn.querySelector('.block') ||
+          null;
+        if (span && !span.querySelector('svg,img,i')) {
+          if (span.textContent !== 'Entrar') span.textContent = 'Entrar';
+        } else {
+          // último recurso: só se o botão for folha simples
+          var hasComplex = btn.querySelector('svg,img,input');
+          if (!hasComplex && t !== 'Entrar') {
+            // preserva ícones: só troca nós de texto
+            var walk = function (n) {
+              if (!n) return false;
+              if (n.nodeType === 3 && /Login|Entrar|Sign\s*in/i.test(n.nodeValue || '')) {
+                n.nodeValue = 'Entrar';
+                return true;
+              }
+              if (n.nodeType === 1) {
+                for (var c = 0; c < n.childNodes.length; c++) {
+                  if (walk(n.childNodes[c])) return true;
+                }
+              }
+              return false;
+            };
+            walk(btn);
+          }
+        }
+        btn.setAttribute('aria-label', 'Entrar');
+      }
+      // link "Registrar-se" no rodapé do card
+      root.querySelectorAll('a, span, button, div').forEach(function (el) {
+        var tt = (el.innerText || '').replace(/\s+/g, ' ').trim();
+        if (/^Registrar$|^Register$/i.test(tt) && tt.length < 14) {
+          if (el.children && el.children.length === 0) el.textContent = 'Registrar-se';
+        }
+      });
+    } catch (e) {}
+  }
+
+  /** Header: padroniza labels Entrar / Registrar */
+  function polishHeaderButtons() {
+    try {
+      var host =
+        document.querySelector('.header-content .loginRegister') ||
+        document.querySelector('.header-content [class*="loginRegister"]') ||
+        document.querySelector('.header-content .login-register');
+      if (!host) return;
+      var btns = host.querySelectorAll('button, .q-btn, a, div, span');
+      for (var i = 0; i < btns.length; i++) {
+        var b = btns[i];
+        if (b.children && b.children.length > 1) continue;
+        var t = (b.innerText || b.textContent || '').replace(/\s+/g, ' ').trim();
+        if (/^Login$|^Sign\s*in$/i.test(t)) {
+          if (b.childNodes.length === 1 && b.childNodes[0].nodeType === 3) b.childNodes[0].nodeValue = 'Entrar';
+          else if (!b.querySelector('svg,img')) b.textContent = 'Entrar';
+          b.classList.add('entrar');
+        }
+        if (/^Registrar$|^Register$|^Sign\s*up$/i.test(t)) {
+          if (b.childNodes.length === 1 && b.childNodes[0].nodeType === 3)
+            b.childNodes[0].nodeValue = 'Registrar';
+          else if (!b.querySelector('svg,img') && t.length < 12) b.textContent = 'Registrar';
+          b.classList.add('register');
+        }
+      }
+    } catch (e) {}
+  }
+
+  function ensureLoginPassErr(root, passInput) {
+    if (!root || !passInput) return null;
+    var existing = document.getElementById(LOGIN_PASS_ERR_ID);
+    if (existing) return existing;
+    var box = document.createElement('div');
+    box.id = LOGIN_PASS_ERR_ID;
+    box.setAttribute('role', 'alert');
+    var field = passInput.closest('.q-field') || passInput.parentElement;
+    if (field && field.parentElement) field.parentElement.insertBefore(box, field.nextSibling);
+    else root.appendChild(box);
+    return box;
+  }
+
+  function setLoginPassErr(msg) {
+    var box = document.getElementById(LOGIN_PASS_ERR_ID);
+    if (!box) return;
+    if (msg) {
+      box.textContent = msg;
+      box.classList.add('show');
+    } else {
+      box.textContent = '';
+      box.classList.remove('show');
+    }
+  }
+
+  function findLoginPassInput(root) {
+    if (!root) return null;
+    var list = root.querySelectorAll('input[type="password"], input');
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i];
+      if (el.closest && el.closest('#' + FORM_ID)) continue;
+      if (el.type === 'password') return el;
+      var ph = (el.placeholder || '') + (el.getAttribute('aria-label') || '');
+      if (/senha|password|pass/i.test(ph)) return el;
+    }
+    return null;
+  }
+
   function adaptLogin() {
     var root = dialogRoot();
     if (!root) return;
     root.classList.remove('ch7-reg-mode');
+    root.classList.remove('ch7-native-reg');
     root.classList.add('ch7-smart-id');
     ensureStyle();
+
+    polishLoginCta(root);
+    polishAgeCopy(root);
+    polishHeaderButtons();
 
     var el = findLoginIdentityInput(root);
     if (!el) return;
 
+    // identidade unificada
     el.placeholder = 'E-mail ou Telefone';
     el.setAttribute('aria-label', 'E-mail ou Telefone');
     el.setAttribute('maxlength', '80');
     try {
       el.setAttribute('type', 'text');
-    } catch (e) {}
+    } catch (e0) {}
     el.setAttribute('inputmode', 'email');
     el.setAttribute('autocomplete', 'username');
 
     ensureLoginErr(root, el);
+    var passEl = findLoginPassInput(root);
+    if (passEl) {
+      if (!passEl.placeholder) passEl.placeholder = 'Senha';
+      passEl.setAttribute('autocomplete', 'current-password');
+      ensureLoginPassErr(root, passEl);
+    }
 
     function onIdentityInput() {
       var r = dialogRoot();
@@ -1079,28 +1448,18 @@
       if (kind === 'email') r.classList.add('ch7-login-email-mode');
       else r.classList.remove('ch7-login-email-mode');
 
-      // realtime: só mostra erro se já digitou algo e parece completo o suficiente
       if (!String(val).trim()) {
         setLoginErr('');
         return;
       }
       if (kind === 'email') {
-        // enquanto digita e-mail incompleto, só alerta se tem @ e domínio incompleto com blur handled below
         if (val.indexOf('@') >= 0 && val.indexOf('.') > val.indexOf('@')) {
           setLoginErr(isEmail(val) ? '' : MSG.email);
-        } else if (val.indexOf('@') >= 0 && val.length > 5) {
-          // tem @ mas ainda incompleto — não gritar "telefone"
-          setLoginErr('');
-        } else if (/[a-zA-Z]/.test(val) && val.length >= 3 && val.indexOf('@') < 0) {
-          // letras sem @: dica suave só se parece "quase email" longo
-          setLoginErr('');
-        } else {
-          setLoginErr('');
-        }
+        } else setLoginErr('');
       } else {
-        // phone: só erro se 4+ dígitos e ainda inválido (evita gritar no 1º dígito)
         var d = onlyDigits(val);
-        if (d.length >= 8) setLoginErr(isPhoneBR(val) ? '' : MSG.phone);
+        if (d.length >= 10) setLoginErr(isPhoneBR(val) ? '' : MSG.phone);
+        else if (d.length >= 8) setLoginErr(MSG.phoneShort);
         else setLoginErr('');
       }
       rewriteQuasarPhoneErrors(r);
@@ -1117,17 +1476,28 @@
       rewriteQuasarPhoneErrors(dialogRoot());
     }
 
-    if (!el.__ch7LoginV9) {
-      el.__ch7LoginV9 = 1;
-      el.addEventListener('input', onIdentityInput);
-      el.addEventListener('blur', onIdentityBlur);
-    } else {
-      onIdentityInput();
+    function onPassInput() {
+      if (!passEl) return;
+      var v = passEl.value || '';
+      if (!v) return setLoginPassErr('');
+      if (v.length < 6) setLoginPassErr(MSG.passLogin);
+      else setLoginPassErr('');
     }
 
-    // intercept submit nativo: reescreve erros ruins
-    if (!root.__ch7LoginSubmitV9) {
-      root.__ch7LoginSubmitV9 = 1;
+    if (!el.__ch7LoginV19) {
+      el.__ch7LoginV19 = 1;
+      el.addEventListener('input', onIdentityInput);
+      el.addEventListener('blur', onIdentityBlur);
+    } else onIdentityInput();
+
+    if (passEl && !passEl.__ch7LoginV19) {
+      passEl.__ch7LoginV19 = 1;
+      passEl.addEventListener('input', onPassInput);
+      passEl.addEventListener('blur', onPassInput);
+    }
+
+    if (!root.__ch7LoginSubmitV19) {
+      root.__ch7LoginSubmitV19 = 1;
       root.addEventListener(
         'click',
         function (ev) {
@@ -1136,43 +1506,106 @@
           var t = (btn.textContent || '').replace(/\s+/g, ' ').trim();
           if (!/^Login$|^Entrar$/i.test(t)) return;
           var idEl = findLoginIdentityInput(dialogRoot());
-          if (!idEl) return;
-          var res = validateIdentity(idEl.value);
-          if (res !== true) {
-            setLoginErr(res);
-            // deixa SPA tentar; reescreve mensagens em seguida
-            setTimeout(function () {
-              rewriteQuasarPhoneErrors(dialogRoot());
+          var pEl = findLoginPassInput(dialogRoot());
+          var bad = false;
+          if (idEl) {
+            var res = validateIdentity(idEl.value);
+            if (res !== true) {
               setLoginErr(res);
-            }, 50);
+              bad = true;
+            } else setLoginErr('');
+          }
+          if (pEl) {
+            if (!loginPassOk(pEl.value)) {
+              setLoginPassErr(MSG.passLogin);
+              bad = true;
+            } else setLoginPassErr('');
+          }
+          if (bad) {
+            try {
+              ev.preventDefault();
+              ev.stopPropagation();
+            } catch (e1) {}
             setTimeout(function () {
               rewriteQuasarPhoneErrors(dialogRoot());
-            }, 200);
-          } else {
-            setLoginErr('');
+            }, 80);
           }
         },
         true,
       );
     }
 
-    // observer leve para mensagens Quasar (sem characterData = menos loop)
-    if (!root.__ch7LoginMoV12) {
-      root.__ch7LoginMoV12 = 1;
+    if (!root.__ch7LoginMoV19) {
+      root.__ch7LoginMoV19 = 1;
       var moT = null;
       var mo = new MutationObserver(function () {
         if (moT) return;
         moT = setTimeout(function () {
           moT = null;
           rewriteQuasarPhoneErrors(root);
+          polishLoginCta(root);
+          polishAgeCopy(root);
         }, 120);
       });
       mo.observe(root, { childList: true, subtree: true });
     }
   }
 
+  function adaptNativeRegister() {
+    var root = dialogRoot();
+    if (!root) return;
+    root.classList.remove('ch7-reg-mode');
+    root.classList.remove('ch7-smart-id');
+    root.classList.add('ch7-native-reg');
+    ensureStyle();
+    unmountRegisterForm();
+    polishAgeCopy(root);
+    polishHeaderButtons();
+    // CTA nativo: "Registrar-se" (já vem do SPA)
+    try {
+      var btns = root.querySelectorAll(
+        '.submit-section .q-btn, .submit-section button, button.q-btn.full-width',
+      );
+      for (var i = 0; i < btns.length; i++) {
+        var btn = btns[i];
+        var t = (btn.innerText || btn.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!/^(Register|Registrar|Sign\s*up)$/i.test(t)) continue;
+        var span =
+          btn.querySelector('.q-btn__content > span:not(.q-spinner):not(.q-icon)') ||
+          btn.querySelector('.block') ||
+          null;
+        if (span && !span.querySelector('svg,img,i')) span.textContent = 'Registrar-se';
+        else if (!btn.querySelector('svg,img') && t !== 'Registrar-se') {
+          var walk = function (n) {
+            if (!n) return false;
+            if (n.nodeType === 3 && /Register|Registrar|Sign/i.test(n.nodeValue || '')) {
+              n.nodeValue = 'Registrar-se';
+              return true;
+            }
+            if (n.nodeType === 1) {
+              for (var c = 0; c < n.childNodes.length; c++) {
+                if (walk(n.childNodes[c])) return true;
+              }
+            }
+            return false;
+          };
+          walk(btn);
+        }
+      }
+      // rodapé "Ainda sem conta? Login" → Entrar
+      root.querySelectorAll('a, span, div, button').forEach(function (el) {
+        if (el.closest && el.closest('.submit-section, .loginRegister, .q-field')) return;
+        var tt = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (/^Login$|^Sign\s*in$/i.test(tt) && tt.length < 12 && el.children.length === 0) {
+          el.textContent = 'Entrar';
+        }
+      });
+    } catch (e) {}
+  }
+
   function sync() {
     cleanupOrphanForm();
+    polishHeaderButtons();
     var root = dialogRoot();
     if (!root) {
       // sem login dialog: só limpa form órfão, NÃO toca em lottery
@@ -1186,8 +1619,14 @@
     }
     var mode = modeFromUi(root);
     if (mode === 'register') {
-      mountRegisterForm();
-      hideNativeRegisterButtons(root);
+      if (USE_CUSTOM_REGISTER) {
+        mountRegisterForm();
+        hideNativeRegisterButtons(root);
+        polishAgeCopy(root);
+      } else {
+        // modelo rioslots: cadastro nativo (Novo Telefone + Nova Senha)
+        adaptNativeRegister();
+      }
     } else {
       unmountRegisterForm();
       adaptLogin();
@@ -1416,19 +1855,38 @@
 
   // limpa form órfão do v11 (montado na lottery)
   cleanupOrphanForm();
+  try {
+    ensureStyle();
+  } catch (e0) {}
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       cleanupOrphanForm();
+      ensureStyle();
       schedule();
     });
   } else {
     schedule();
   }
   window.addEventListener('hashchange', schedule);
-  // boot curto: só tenta se login dialog existir
+  // boot: reaplica se o dialog montar depois
   setTimeout(schedule, 800);
   setTimeout(schedule, 2000);
+  setTimeout(schedule, 4000);
+
+  // observa aparecimento do login-dialog (sem characterData = sem loop)
+  try {
+    var __ch7DialogMo = null;
+    var __ch7DialogMoT = null;
+    __ch7DialogMo = new MutationObserver(function () {
+      if (__ch7DialogMoT) return;
+      __ch7DialogMoT = setTimeout(function () {
+        __ch7DialogMoT = null;
+        if (dialogRoot()) schedule();
+      }, 150);
+    });
+    __ch7DialogMo.observe(document.documentElement, { childList: true, subtree: true });
+  } catch (eMo) {}
 
   window.__ch7RegisterFields = {
     sync: sync,

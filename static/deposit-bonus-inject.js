@@ -14,7 +14,7 @@
   var mounting = false;
   var EDGE =
     (window.__CH7_GOFUN_EDGE__ ||
-      'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/gofun') + '';
+      'https://vcohnsuomswwfxqlmllm.supabase.co/functions/v1/gofun') + '';
 
   function isStaticProd() {
     var h = location.hostname || '';

@@ -1,0 +1,67 @@
+/**
+ * Popups de vitória / bônus / atividade — glass dark responsivo
+ * v=1
+ */
+
+/* Dialogs de prêmio genéricos do SPA */
+.q-dialog .q-card,
+.q-dialog [class*='reward'],
+.q-dialog [class*='Reward'],
+.q-dialog [class*='winning'],
+.q-dialog [class*='Winning'],
+.q-dialog [class*='Award'] {
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Backdrop mais limpo */
+.q-dialog__backdrop {
+  background: rgba(5, 4, 8, 0.58) !important;
+}
+
+/* Slot da sorte / activity desc */
+.q-dialog .bottomBoxTitle,
+.q-dialog [class*='Activity'] {
+  border-radius: 14px !important;
+}
+
+/* Botões de ação em popups de prêmio */
+.q-dialog .q-btn.full-width,
+.q-dialog .submit-section .q-btn {
+  border-radius: 999px !important;
+}
+
+/* Confetti / win overlay ch7 */
+#ch7-win-pt-overlay .ch7-win-card {
+  animation: ch7WinIn 0.28s ease-out;
+}
+
+@keyframes ch7WinIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Mobile: popups não estouram viewport */
+@media (max-width: 480px) {
+  .q-dialog__inner > div {
+    max-width: min(100vw - 20px, 4.61rem) !important;
+  }
+
+  #ch7-win-pt-overlay .ch7-win-card {
+    max-width: min(360px, 92vw) !important;
+  }
+}
+
+/* Desktop shell: popups centrados no app 461px */
+@media (min-width: 481px) {
+  .q-dialog__inner {
+    padding: 16px !important;
+  }
+}

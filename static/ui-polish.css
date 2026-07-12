@@ -116,10 +116,11 @@ body,
 }
 
 /* ── Botões dourados padrão (SPA) ─────────────────────────── */
-.cocos-btn,
+/* Botões dourados SPA — NÃO o .menu-btn (hamburger do header) */
+.cocos-btn:not(.menu-btn),
 .myBtnStyle1,
-button.cocos-btn,
-.q-btn.cocos-btn {
+button.cocos-btn:not(.menu-btn),
+.q-btn.cocos-btn:not(.menu-btn) {
   border-radius: var(--ch7-radius-pill) !important;
   font-weight: 800 !important;
   letter-spacing: 0.02em !important;
@@ -150,9 +151,33 @@ button.cocos-btn,
 [class*='banner'] img {
   border-radius: var(--ch7-radius) !important;
   max-width: 100% !important;
+  width: 100% !important;
   height: auto !important;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center center;
+}
+
+/* Login dialog banner (Depósito Bônus Diário) — nunca cortar */
+.login_bg_wrapper,
+.login-dialog-card .login_bg_wrapper {
+  max-height: none !important;
+  height: auto !important;
+  overflow: hidden !important;
+  line-height: 0 !important;
+  width: 100% !important;
+}
+
+.login_bg_wrapper .login_bg,
+img.login_bg,
+.login-dialog-card img.login_bg {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  object-position: center top !important;
+  display: block !important;
 }
 
 .q-carousel__slide,
@@ -160,13 +185,50 @@ button.cocos-btn,
   overflow: hidden;
 }
 
-/* ── Game cards ──────────────────────────────────────────── */
-.gameImgBox,
-.game-img,
-[class*='GameImg'],
+/* ── Game cards compactos — NÃO forçar height no QImg (quebra capa = h:0) ── */
+.gameImgBox {
+  width: 1.15rem !important;
+  max-width: 1.15rem !important;
+  flex: 0 0 1.15rem !important;
+}
+
+.gameImgBox .gameImg,
+.gameImgBox .q-img.gameImg,
 .q-img.game {
-  border-radius: 0.1rem !important;
-  overflow: hidden;
+  border-radius: 0.07rem !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+/* só object-fit — deixa o QImg controlar width/height via padding-bottom nativo */
+.gameImgBox .gameImg .q-img__image,
+.gameImgBox .q-img.gameImg .q-img__image {
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+
+/* Estrela favorita compacta */
+.gameImgBox .collectionBox {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 0.02rem 0.03rem !important;
+  right: 0.05rem !important;
+}
+.gameImgBox .collection,
+.gameImgBox img.collection {
+  width: 0.16rem !important;
+  max-width: 0.17rem !important;
+  height: auto !important;
+  max-height: 0.2rem !important;
+  object-fit: contain !important;
+}
+
+@media (max-width: 400px) {
+  .gameImgBox {
+    width: 1.08rem !important;
+    max-width: 1.08rem !important;
+    flex-basis: 1.08rem !important;
+  }
 }
 
 /* ── Bottom nav safe area (iPhone) ───────────────────────── */
@@ -604,9 +666,9 @@ button[data-rg-fab],
   scrollbar-color: rgba(246, 207, 135, 0.25) transparent;
 }
 
-/* ── Imagens nunca estouram ──────────────────────────────── */
-img,
-.q-img {
+/* ── Imagens nunca estouram (exceto ícone fixo do menu) ─── */
+img:not(.img10002):not([data-ch7-menu-icon]),
+.q-img:not(.logo-img) {
   max-width: 100%;
 }
 

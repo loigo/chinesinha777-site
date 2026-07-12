@@ -9,17 +9,21 @@ button[data-rg-fab],
   pointer-events: none !important;
 }
 
-/* Perf imagens */
-img {
+/* Perf imagens — NÃO aplicar em ícones fixos do header (menu 10002 colapsa com max-width:100%) */
+img:not(.img10002):not([data-ch7-menu-icon]):not(.q-img__image) {
   max-width: 100%;
-  height: auto;
 }
+/* Capas de jogo: NÃO forçar height:auto (quebra object-fit:cover do SPA/rioslots) */
 .q-img__image,
 .game-img,
 .gameImg,
-[class*='game'] img {
+[class*='GameImg'] img,
+.gameImgBox img,
+.hot-game img,
+[class*='gameList'] img,
+[class*='GameList'] img {
   content-visibility: auto;
-  contain-intrinsic-size: 120px 120px;
+  contain-intrinsic-size: 120px 160px;
 }
 
 /* scroll suave */

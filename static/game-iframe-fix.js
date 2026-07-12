@@ -74,7 +74,7 @@
   // Proxy game-shell: local usa same-origin /game-shell; prod usa Edge Supabase
   // (permite injetar tradução de popup de vitória + formatarURL).
   var EDGE_GAME_SHELL =
-    'https://bgajbbvgcqqkbvbtwnec.supabase.co/functions/v1/game-shell';
+    'https://vcohnsuomswwfxqlmllm.supabase.co/functions/v1/game-shell';
 
   function isStaticProdHost() {
     var h = location.hostname || '';
@@ -129,17 +129,53 @@
     } catch (e) {}
   }
 
+  /** notranslate + script de vitória pt-BR no iframe (same-origin / game-shell) */
+  function injectWinPt(winDoc) {
+    try {
+      if (!winDoc || !winDoc.documentElement) return;
+      try {
+        winDoc.documentElement.setAttribute('lang', 'pt-BR');
+        winDoc.documentElement.setAttribute('translate', 'no');
+        winDoc.documentElement.classList.add('notranslate');
+        if (winDoc.body) {
+          winDoc.body.setAttribute('translate', 'no');
+          winDoc.body.classList.add('notranslate');
+        }
+      } catch (e0) {}
+      if (winDoc.documentElement.dataset && winDoc.documentElement.dataset.ch7WinPtScript === '1') {
+        try {
+          if (typeof window.__ch7ScanWinPopupPt === 'function') window.__ch7ScanWinPopupPt();
+        } catch (e1) {}
+        return;
+      }
+      if (winDoc.documentElement.dataset) winDoc.documentElement.dataset.ch7WinPtScript = '1';
+      var s = winDoc.createElement('script');
+      s.src = '/static/win-popup-pt-inject.js?v=winpt4';
+      s.defer = true;
+      (winDoc.head || winDoc.documentElement).appendChild(s);
+    } catch (e) {}
+  }
+
   function tryPatchIframe(el) {
     try {
       var doc = el.contentDocument;
       if (doc) {
         injectXhrSafe(doc);
+        injectWinPt(doc);
         setTimeout(function () {
           injectXhrSafe(doc);
+          injectWinPt(doc);
         }, 50);
         setTimeout(function () {
           injectXhrSafe(doc);
+          injectWinPt(doc);
         }, 300);
+        setTimeout(function () {
+          injectWinPt(doc);
+          try {
+            if (typeof window.__ch7ScanWinPopupPt === 'function') window.__ch7ScanWinPopupPt();
+          } catch (e2) {}
+        }, 1000);
       }
     } catch (e) {}
   }

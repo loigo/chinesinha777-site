@@ -1,69 +1,32 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="notranslate" translate="no">
 <head>
-  <!-- ch7-spa-404-fix spa40420260711 -->
-  <!-- ch7-pix-ux pixuxmrgsi8vj -->
-  <!-- ch7-reg-v8 regv8mrgs91xr -->
-  <!-- ch7-auth-id authmrgrytmr -->
-  <!-- ch7-fix-id fixmrgrug5u -->
-  <!-- ch7-launch-id launch202607111628 -->
   <meta charset="utf-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
+  <meta name="google" content="notranslate">
+  <meta http-equiv="Content-Language" content="pt-BR">
   <meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width,viewport-fit=cover">
-  <meta name="description" content="Chinesinha777 â€” cassino online. Slots, bÃ´nus e PIX.">
+  <meta name="description" content="Chinesinha777 — cassino online. Slots, bônus e PIX.">
   <meta name="theme-color" content="#171512">
   <meta name="format-detection" content="telephone=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Chinesinha777.bet â€” O cassino estÃ¡ Bombando!</title>
+  <title>Chinesinha777.bet — O cassino está Bombando!</title>
 
-  <!-- SPA hash fallback + painel admin redirect -->
-  <script>
-  (function () {
-    try {
-      var ADMIN =
-        'https://bgajbbvgcqqkbvbtwnec.supabase.co/storage/v1/object/public/web/admin/index.html';
-      var h = location.hash || '';
-      // #/painel ou #/admin → painel admin real (não é rota do cassino SPA)
-      if (/^#\/(painel|admin)(\/|$)/i.test(h)) {
-        location.replace(ADMIN + (location.search || ''));
-        return;
-      }
-      var p = location.pathname || '/';
-      if (p === '/' || p === '/index.html') return;
-      // painel/admin são páginas estáticas de redirect — NÃO virar /#/painel
-      if (/^\/(painel|admin)(\/|$)/i.test(p)) return;
-      if (/\.(html?|js|css|json|map|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|txt|xml|webmanifest|mp3|mp4|wasm)$/i.test(p)) return;
-      if (/^\/(assets|static|css|font)\//i.test(p)) return;
-      var route = p.replace(/\/+$/, '');
-      if (!route || route === '/') return;
-      if (h.indexOf('#/') === 0) {
-        location.replace('/' + h + (location.search || ''));
-        return;
-      }
-      location.replace('/#' + route + (location.search || ''));
-    } catch (e) {}
-  })();
-  </script>
-
-  <!-- ANTES do SPA: reescreve static + bloqueia CF tracking CDN -->
-  <script src="/static/asset-origin-fix.js?v=3"></script>
-  <!-- Crypto same-origin (evita Tracking Prevention / 404 CDN) -->
-  <script src="/static/vendor/crypto-js.min.js?v=1"></script>
+  <!-- ANTES do SPA: reescreve chinesinha777.bet/static → /static (evita timeout offline) -->
+  <script src="/static/asset-origin-fix.js?v=2"></script>
+  <!-- Crypto local (sem CDN Cloudflare — evita Tracking Prevention storage) -->
+  <script src="/static/vendor/crypto-js.min.js"></script>
   <!-- Produção estática: SW off + /gofun → Supabase Edge -->
   <script src="/static/gofun-edge-bridge.js?v=11"></script>
-  <script src="/static/register-fields-inject.js?v=15"></script>
 
-
-<!-- Guard Meta Pixel: 1x fbevents.js + 1 init por pixel ID (anti "conflicting versions") -->
+  <!-- Guard Meta Pixel: 1x fbevents.js + 1 init por pixel ID (anti "conflicting versions") -->
   <script>
   (function(w,d){
     if(w.__ch7FbqInitGuard) return;
     w.__ch7FbqInitGuard=1;
     w.__ch7FbInitedIds=w.__ch7FbInitedIds||Object.create(null);
     var inited=w.__ch7FbInitedIds;
-    var fbeventsAllowed=1; // sÃ³ o 1Âº fbevents.js entra
+    var fbeventsAllowed=1; // só o 1º fbevents.js entra
 
     function isFbeventsUrl(v){
       var s=String(v||'');
@@ -72,7 +35,7 @@
     function blockFbevents(v){
       if(!isFbeventsUrl(v)) return false;
       if(fbeventsAllowed>0){ fbeventsAllowed=0; return false; }
-      return true; // bloqueia 2Âº+
+      return true; // bloqueia 2º+
     }
     function guardScriptEl(el){
       if(!el || el.__ch7FbGuard) return el;
@@ -85,7 +48,7 @@
             configurable:true,enumerable:true,
             get:function(){ return desc.get.call(this); },
             set:function(v){
-              if(blockFbevents(v)) return; // drop 2Âº fbevents
+              if(blockFbevents(v)) return; // drop 2º fbevents
               return desc.set.call(this,v);
             }
           });
@@ -111,7 +74,7 @@
       };
     }catch(e){}
 
-    // appendChild / insertBefore â€” GTM Ã s vezes injeta script jÃ¡ montado
+    // appendChild / insertBefore — GTM às vezes injeta script já montado
     try{
       function wrapInsert(proto, method){
         var orig=proto[method];
@@ -121,7 +84,7 @@
             if(node && node.tagName==='SCRIPT'){
               var src=node.src || (node.getAttribute && node.getAttribute('src')) || '';
               if(blockFbevents(src)){
-                // nÃ£o injeta 2Âº fbevents
+                // não injeta 2º fbevents
                 return node;
               }
               guardScriptEl(node);
@@ -205,7 +168,7 @@
     }catch(e){}
   })(window,document);
   </script>
-  <!-- Google Tag Manager (sÃ³ em domÃ­nio de produÃ§Ã£o â€” evita ERR_CONNECTION_TIMED_OUT no local) -->
+  <!-- Google Tag Manager (só em domínio de produção — evita ERR_CONNECTION_TIMED_OUT no local) -->
   <script>
   (function(w,d,s,l,i){
     try{
@@ -290,14 +253,16 @@
   <link rel="dns-prefetch" href="https://pgsoft6.igamewin.com">
   <link rel="dns-prefetch" href="https://painel.royalgamess.com">
 
-  <!-- Paths ABSOLUTOS (/assets) â€” NÃƒO adicionar ?v= no main module (quebra import.meta.url do Vite) -->
+  <!-- Paths ABSOLUTOS (/assets) — NÃO adicionar ?v= no main module (quebra import.meta.url do Vite) -->
   <link rel="modulepreload" href="/assets/index-Bxx4mSPk.js" crossorigin>
   <link rel="preload" href="/assets/index-BqSTfsO5.css" as="style" crossorigin>
   <link rel="preload" href="/static/brand/logo-horizontal.png?v=ch7-13" as="image" type="image/png">
   <link rel="stylesheet" crossorigin href="/assets/index-BqSTfsO5.css">
-  <link rel="stylesheet" href="/static/kill-extra-ui.css?v=ch7-21">
+  <link rel="stylesheet" href="/static/kill-extra-ui.css?v=ch7-23">
   <link rel="stylesheet" href="/static/brand.css?v=ch7-21">
-  <link rel="stylesheet" href="/static/ui-polish.css?v=ch7-25">
+  <link rel="stylesheet" href="/static/ui-polish.css?v=ch7-30">
+  <link rel="stylesheet" href="/static/menu-drawer.css?v=1">
+  <link rel="stylesheet" href="/static/popup-polish.css?v=1">
 
   <script>
     window.__RIOSLOTS_API_BASE__=window.location.origin;
@@ -305,7 +270,7 @@
     window.__CHINESINHA_DEBUG__=false;
   </script>
 </head>
-<body>
+<body class="notranslate" translate="no">
   <!-- Google Tag Manager (noscript) -->
   <noscript><iframe src="https://srv.chinesinha777.bet/ns.html?id=GTM-T56G4WXM" height="0" width="0" style="display:none;visibility:hidden" title="gtm"></iframe></noscript>
   <noscript>
@@ -323,8 +288,8 @@
   <div id="q-app"></div>
   <div id="ch7-fail" role="alert">
     <div class="box">
-      <h1>NÃ£o foi possÃ­vel carregar</h1>
-      <p>O site nÃ£o iniciou. Toque em recarregar (limpa cache e tenta de novo).</p>
+      <h1>Não foi possível carregar</h1>
+      <p>O site não iniciou. Toque em recarregar (limpa cache e tenta de novo).</p>
       <button type="button" id="ch7-fail-btn">Recarregar site</button>
     </div>
   </div>
@@ -332,13 +297,14 @@
   <script type="module" crossorigin src="/assets/index-Bxx4mSPk.js"
     onerror="window.__ch7MainFail=1"></script>
   <!-- Essenciais na home (anti-loop). Resto sob demanda por rota. -->
+  <!-- pt-BR: popups vitória/RESPIN + impede tradução automática do browser -->
+  <script defer src="/static/win-popup-pt-inject.js?v=winpt5"></script>
   <script defer src="/static/brand-inject.js?v=ch7-26"></script>
+  <script defer src="/static/menu-drawer-inject.js?v=1"></script>
+  <script defer src="/static/game-covers-inject.js?v=3"></script>
   <script defer src="/static/supabase-boot.js?v=1"></script>
-  <script defer src="/static/register-fields-inject.js?v=15"></script>
-  <script defer src="/static/forgot-password-inject.js?v=3"></script>
-  <script defer src="/static/win-popup-pt-inject.js?v=winpt2"></script>
-  <script defer src="/static/tracking-attribution.js?v=1"></script>
-  <script defer src="/static/invite-shop-inject.js?v=1"></script>
+  <script defer src="/static/register-fields-inject.js?v=20"></script>
+  <script defer src="/static/forgot-password-inject.js?v=6"></script>
 
   <script>
     function ch7Load(src){
@@ -362,29 +328,45 @@
     // Lazy: só carrega injects pesados na rota certa (para o loop na home)
     function ch7RouteInjects(){
       var h=String(location.hash||'');
+      // Vitória EN→PT (passivo, 1 arquivo, sem loop) — já no boot; re-load idempotente
       if(/recharge/i.test(h)){
-        ch7Load('/static/deposit-pix-inject.js?v=13');
+        ch7Load('/static/deposit-pix-inject.js?v=12');
         ch7Load('/static/deposit-cpf-inject.js?v=2');
       }
-      if(/iframe|fishing|collect/i.test(h)){
-        ch7Load('/static/game-iframe-fix.js?v=winpt2');
+      if(/iframe|fishing|collect|game/i.test(h)){
+        ch7Load('/static/game-iframe-fix.js?v=winpt4');
       }
       if(/signIn|pass|activit/i.test(h)){
         ch7Load('/static/checkin-treasure-inject.js?v=3');
-        ch7Load('/static/pass-dialog-close.js?v=4');
+        ch7Load('/static/pass-dialog-close.js?v=5');
+        ch7Load('/static/activity-desc-close.js?v=5');
       }
     }
+    // Fecha popup de prêmio "R$ 0" / respin residual que cobre VIP e outras páginas
     function ch7DismissJunkWin(){
       try{
         document.querySelectorAll('.q-dialog').forEach(function(d){
           var t=(d.innerText||'').replace(/\s+/g,' ');
           if(!/CONGRATS|YOU.?VE\s+WON|RESPIN|PARAB[EÉ]NS|VOC[EÊ]\s+GANHOU/i.test(t)) return;
+          // só auto-fecha se valor 0 ou overlay em rota que não é jogo
           var zero=/R\$\s*0([.,]0+)?\b/.test(t);
           var onGame=/iframe|fishing|collect/i.test(location.hash||'');
           if(!zero && onGame) return;
           if(!zero && !/vip|recharge|activities|signIn|mine|mypage|personal/i.test(location.hash||'')) return;
           var btn=d.querySelector('.cloneImg, .close, button, .q-btn, [aria-label="Close"]');
           if(btn){ try{btn.click();}catch(e){} }
+          else {
+            try{
+              var app=document.querySelector('#q-app');
+              var pinia=app&&app.__vue_app__&&app.__vue_app__.config.globalProperties.$pinia;
+              var game=pinia&&pinia._s&&pinia._s.get('game');
+              if(game&&typeof game.removeDialog==='function'){
+                ['winningDialog','registrationRewardDialog','generalRewardDialog'].forEach(function(n){
+                  try{ game.removeDialog(n); }catch(e2){}
+                });
+              }
+            }catch(e3){}
+          }
         });
       }catch(e){}
     }
@@ -401,6 +383,7 @@
       if(app && app.children && app.children.length){
         _bootDone=1;
         ch7BootHide();
+        // esconde botão fantasma "Recarregar site" se fail UI vazou
         try{
           var fail=document.getElementById('ch7-fail');
           if(fail){ fail.classList.remove('show'); fail.style.display='none'; }
@@ -433,18 +416,6 @@
       }catch(e){}
       location.href='/?_='+Date.now();
     });
-
-    if('requestIdleCallback' in window){
-      requestIdleCallback(function(){
-        ch7Load('/static/activity-desc-close.js?v=1');
-        ch7Load('/static/perf-boost.js?v=1');
-      },{timeout:2500});
-    } else {
-      setTimeout(function(){
-        ch7Load('/static/activity-desc-close.js?v=1');
-        ch7Load('/static/perf-boost.js?v=1');
-      }, 800);
-    }
   </script>
 </body>
 </html>
