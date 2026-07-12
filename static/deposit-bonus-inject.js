@@ -14,7 +14,7 @@
   var mounting = false;
   var EDGE =
     (window.__CH7_GOFUN_EDGE__ ||
-      'https://vcohnsuomswwfxqlmllm.supabase.co/functions/v1/gofun') + '';
+      'https://api.chinesinha777.bet/functions/v1/gofun') + '';
 
   function isStaticProd() {
     var h = location.hostname || '';

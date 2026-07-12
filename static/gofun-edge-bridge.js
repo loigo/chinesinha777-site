@@ -1,24 +1,64 @@
 /**
- * Bridge v11 — /gofun → Supabase Edge.
+ * Bridge v12 — /gofun → Supabase Edge (Pro aposta 777).
  * CRÍTICO: token do jogador (ch7.*) NÃO pode ir só em Authorization —
  * o gateway Supabase engole/valida JWT e a sessão some no depósito.
  * Copia ch7.* → x-player-token + token; Authorization = Bearer ANON.
- * v11: se SPA não manda Authorization, busca token em localStorage/pinia
- *       (sem isso shop/order falha com "precisa estar logado").
+ * v12: EDGE/ANON do projeto Pro + custom domain api.chinesinha777.bet
+ *       (v11 apontava Free apagado → home sem jogos).
+ * v11: se SPA não manda Authorization, busca token em localStorage/pinia.
  */
 (function () {
   'use strict';
-  if (window.__ch7GofunBridgeV11) return;
+  if (window.__ch7GofunBridgeV12) return;
+  window.__ch7GofunBridgeV12 = 1;
   window.__ch7GofunBridgeV11 = 1;
   window.__ch7GofunBridgeV10 = 1;
   window.__ch7GofunBridgeV9 = 1;
   window.__ch7GofunBridgeV8 = 1;
   window.__ch7GofunBridgeV7 = 1;
 
-  var EDGE = 'https://vcohnsuomswwfxqlmllm.supabase.co/functions/v1';
+  // Defaults Pro (aposta 777) — sobrescritos por /static/supabase-config.json se disponível
+  var EDGE = 'https://api.chinesinha777.bet/functions/v1';
   var GOFUN = EDGE + '/gofun';
   var ANON =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnYWpiYnZnY3Fxa2J2YnR3bmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzcyODUsImV4cCI6MjA5OTM1MzI4NX0.AwabvvbOtljHtrvk_KJGKQVuvZLJRphrtcrSQnojGr0';
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzZHp4ZW9ocGdudnZld253eG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MjY3ODQsImV4cCI6MjA5OTQwMjc4NH0.63S2UMqVcfhpZ6EYIrJlrKx9lsrE1rXUw-_7IRxIloA';
+
+  function applySupabaseCfg(cfg) {
+    if (!cfg || typeof cfg !== 'object') return;
+    if (cfg.anonKey) ANON = String(cfg.anonKey);
+    if (cfg.gofunApi || cfg.gofun) {
+      GOFUN = String(cfg.gofunApi || cfg.gofun).replace(/\/$/, '');
+      try {
+        var u = new URL(GOFUN);
+        EDGE = u.origin + '/functions/v1';
+      } catch (e0) {}
+    } else if (cfg.customUrl) {
+      EDGE = String(cfg.customUrl).replace(/\/$/, '') + '/functions/v1';
+      GOFUN = EDGE + '/gofun';
+    } else if (cfg.url) {
+      EDGE = String(cfg.url).replace(/\/$/, '') + '/functions/v1';
+      GOFUN = EDGE + '/gofun';
+    }
+    window.__CH7_GOFUN_EDGE__ = GOFUN;
+    window.__CH7_EDGE_BASE__ = EDGE;
+    window.__CH7_ANON__ = ANON;
+  }
+
+  // Config síncrono se boot já rodou; senão fetch assíncrono
+  if (window.__CH7_SUPABASE__ && window.__CH7_SUPABASE__.url) {
+    applySupabaseCfg(window.__CH7_SUPABASE__);
+  } else {
+    try {
+      fetch('/static/supabase-config.json', { cache: 'no-store' })
+        .then(function (r) {
+          return r.ok ? r.json() : null;
+        })
+        .then(function (j) {
+          if (j) applySupabaseCfg(j);
+        })
+        .catch(function () {});
+    } catch (eCfg) {}
+  }
 
   function isOurHost(hostname) {
     return (
@@ -263,8 +303,17 @@
     return u;
   }
 
+  function isEdgeMapped(mapped) {
+    var s = String(mapped || '');
+    return (
+      s.indexOf('supabase.co') !== -1 ||
+      s.indexOf('api.chinesinha777.bet') !== -1 ||
+      s.indexOf('/functions/v1/') !== -1
+    );
+  }
+
   function patchInitHeaders(init, mapped) {
-    if (!mapped || String(mapped).indexOf('supabase.co') === -1) return init;
+    if (!mapped || !isEdgeMapped(mapped)) return init;
     init = init || {};
     var prefer = extractPlayerToken(init.headers) || getStoredPlayerToken();
     init.headers = ensureEdgeAuth(init.headers || {}, prefer);
