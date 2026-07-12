@@ -1,23 +1,28 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR" class="notranslate" translate="no">
 <head>
   <meta charset="utf-8">
   <meta name="google" content="notranslate">
   <meta http-equiv="Content-Language" content="pt-BR">
   <meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width,viewport-fit=cover">
-  <meta name="description" content="Chinesinha777 — cassino online. Slots, bônus e PIX.">
+  <meta name="description" content="Chinesinha777 â€” cassino online. Slots, bÃ´nus e PIX.">
   <meta name="theme-color" content="#171512">
   <meta name="format-detection" content="telephone=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Chinesinha777.bet — O cassino está Bombando!</title>
+  <title>Chinesinha777.bet â€” O cassino estÃ¡ Bombando!</title>
 
-  <!-- ANTES do SPA: reescreve chinesinha777.bet/static → /static (evita timeout offline) -->
+  <!-- ANTES do SPA: reescreve chinesinha777.bet/static â†’ /static (evita timeout offline) -->
   <script src="/static/asset-origin-fix.js?v=2"></script>
-  <!-- Crypto local (sem CDN Cloudflare — evita Tracking Prevention storage) -->
+  <!-- Crypto local (sem CDN Cloudflare â€” evita Tracking Prevention storage) -->
   <script src="/static/vendor/crypto-js.min.js"></script>
-  <!-- Produção estática: SW off + /gofun → Supabase Edge -->
-  <script src="/static/gofun-edge-bridge.js?v=16"></script>
+  <!-- ProduÃ§Ã£o estÃ¡tica: SW off + /gofun â†’ Supabase Edge -->
+  <script>
+    window.__CH7_DEDICATED__ = true;
+    window.__CH7_GOFUN_EDGE__ = '';
+    window.__CH7_EDGE_BASE__ = '';
+    window.__RIOSLOTS_API_BASE__ = window.location.origin;
+  </script>
   <!-- Debug opcional: ?debug=1 ou localStorage CHINESINHA_DEBUG=1 -->
   <script src="/static/debug-mode.js?v=2"></script>
 
@@ -28,7 +33,7 @@
     w.__ch7FbqInitGuard=1;
     w.__ch7FbInitedIds=w.__ch7FbInitedIds||Object.create(null);
     var inited=w.__ch7FbInitedIds;
-    var fbeventsAllowed=1; // só o 1º fbevents.js entra
+    var fbeventsAllowed=1; // sÃ³ o 1Âº fbevents.js entra
 
     function isFbeventsUrl(v){
       var s=String(v||'');
@@ -37,7 +42,7 @@
     function blockFbevents(v){
       if(!isFbeventsUrl(v)) return false;
       if(fbeventsAllowed>0){ fbeventsAllowed=0; return false; }
-      return true; // bloqueia 2º+
+      return true; // bloqueia 2Âº+
     }
     function guardScriptEl(el){
       if(!el || el.__ch7FbGuard) return el;
@@ -50,7 +55,7 @@
             configurable:true,enumerable:true,
             get:function(){ return desc.get.call(this); },
             set:function(v){
-              if(blockFbevents(v)) return; // drop 2º fbevents
+              if(blockFbevents(v)) return; // drop 2Âº fbevents
               return desc.set.call(this,v);
             }
           });
@@ -76,7 +81,7 @@
       };
     }catch(e){}
 
-    // appendChild / insertBefore — GTM às vezes injeta script já montado
+    // appendChild / insertBefore â€” GTM Ã s vezes injeta script jÃ¡ montado
     try{
       function wrapInsert(proto, method){
         var orig=proto[method];
@@ -86,7 +91,7 @@
             if(node && node.tagName==='SCRIPT'){
               var src=node.src || (node.getAttribute && node.getAttribute('src')) || '';
               if(blockFbevents(src)){
-                // não injeta 2º fbevents
+                // nÃ£o injeta 2Âº fbevents
                 return node;
               }
               guardScriptEl(node);
@@ -170,7 +175,7 @@
     }catch(e){}
   })(window,document);
   </script>
-  <!-- Google Tag Manager (só em domínio de produção — evita ERR_CONNECTION_TIMED_OUT no local) -->
+  <!-- Google Tag Manager (sÃ³ em domÃ­nio de produÃ§Ã£o â€” evita ERR_CONNECTION_TIMED_OUT no local) -->
   <script>
   (function(w,d,s,l,i){
     try{
@@ -255,7 +260,7 @@
   <link rel="dns-prefetch" href="https://pgsoft6.igamewin.com">
   <link rel="dns-prefetch" href="https://painel.royalgamess.com">
 
-  <!-- Paths ABSOLUTOS (/assets) — NÃO adicionar ?v= no main module (quebra import.meta.url do Vite) -->
+  <!-- Paths ABSOLUTOS (/assets) â€” NÃƒO adicionar ?v= no main module (quebra import.meta.url do Vite) -->
   <link rel="modulepreload" href="/assets/index-Bxx4mSPk.js" crossorigin>
   <link rel="preload" href="/assets/index-BqSTfsO5.css" as="style" crossorigin>
   <link rel="preload" href="/static/brand/logo-horizontal.png?v=ch7-13" as="image" type="image/png">
@@ -290,8 +295,8 @@
   <div id="q-app"></div>
   <div id="ch7-fail" role="alert">
     <div class="box">
-      <h1>Não foi possível carregar</h1>
-      <p>O site não iniciou. Toque em recarregar (limpa cache e tenta de novo).</p>
+      <h1>NÃ£o foi possÃ­vel carregar</h1>
+      <p>O site nÃ£o iniciou. Toque em recarregar (limpa cache e tenta de novo).</p>
       <button type="button" id="ch7-fail-btn">Recarregar site</button>
     </div>
   </div>
@@ -299,7 +304,7 @@
   <script type="module" crossorigin src="/assets/index-Bxx4mSPk.js"
     onerror="window.__ch7MainFail=1"></script>
   <!-- Essenciais na home (anti-loop). Resto sob demanda por rota. -->
-  <!-- pt-BR: popups vitória/RESPIN + impede tradução automática do browser -->
+  <!-- pt-BR: popups vitÃ³ria/RESPIN + impede traduÃ§Ã£o automÃ¡tica do browser -->
   <script defer src="/static/win-popup-pt-inject.js?v=winpt5"></script>
   <script defer src="/static/brand-inject.js?v=ch7-26"></script>
   <script defer src="/static/menu-drawer-inject.js?v=1"></script>
@@ -327,10 +332,10 @@
       var f=document.getElementById('ch7-fail');
       if(f) f.classList.add('show');
     }
-    // Lazy: só carrega injects pesados na rota certa (para o loop na home)
+    // Lazy: sÃ³ carrega injects pesados na rota certa (para o loop na home)
     function ch7RouteInjects(){
       var h=String(location.hash||'');
-      // Vitória EN→PT (passivo, 1 arquivo, sem loop) — já no boot; re-load idempotente
+      // VitÃ³ria ENâ†’PT (passivo, 1 arquivo, sem loop) â€” jÃ¡ no boot; re-load idempotente
       if(/recharge/i.test(h)){
         ch7Load('/static/deposit-pix-inject.js?v=12');
         ch7Load('/static/deposit-cpf-inject.js?v=2');
@@ -344,13 +349,13 @@
         ch7Load('/static/activity-desc-close.js?v=5');
       }
     }
-    // Fecha popup de prêmio "R$ 0" / respin residual que cobre VIP e outras páginas
+    // Fecha popup de prÃªmio "R$ 0" / respin residual que cobre VIP e outras pÃ¡ginas
     function ch7DismissJunkWin(){
       try{
         document.querySelectorAll('.q-dialog').forEach(function(d){
           var t=(d.innerText||'').replace(/\s+/g,' ');
-          if(!/CONGRATS|YOU.?VE\s+WON|RESPIN|PARAB[EÉ]NS|VOC[EÊ]\s+GANHOU/i.test(t)) return;
-          // só auto-fecha se valor 0 ou overlay em rota que não é jogo
+          if(!/CONGRATS|YOU.?VE\s+WON|RESPIN|PARAB[EÃ‰]NS|VOC[EÃŠ]\s+GANHOU/i.test(t)) return;
+          // sÃ³ auto-fecha se valor 0 ou overlay em rota que nÃ£o Ã© jogo
           var zero=/R\$\s*0([.,]0+)?\b/.test(t);
           var onGame=/iframe|fishing|collect/i.test(location.hash||'');
           if(!zero && onGame) return;
@@ -385,7 +390,7 @@
       if(app && app.children && app.children.length){
         _bootDone=1;
         ch7BootHide();
-        // esconde botão fantasma "Recarregar site" se fail UI vazou
+        // esconde botÃ£o fantasma "Recarregar site" se fail UI vazou
         try{
           var fail=document.getElementById('ch7-fail');
           if(fail){ fail.classList.remove('show'); fail.style.display='none'; }
@@ -421,3 +426,4 @@
   </script>
 </body>
 </html>
+
