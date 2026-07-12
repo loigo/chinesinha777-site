@@ -1,16 +1,14 @@
 /**
- * Bridge v13 — /gofun → Supabase Edge (Pro aposta 777).
- * CRÍTICO: token do jogador (ch7.*) NÃO pode ir só em Authorization —
- * o gateway Supabase engole/valida JWT e a sessão some no depósito.
- * Copia ch7.* → x-player-token + token; Authorization = Bearer ANON.
- * v13: XHR + axios usam isEdgeMapped (api.chinesinha777.bet), não só supabase.co
- *       (v12 reescrevia URL mas NÃO injetava apikey no custom domain → home sem jogos).
- * v12: EDGE/ANON do projeto Pro + custom domain.
- * v11: se SPA não manda Authorization, busca token em localStorage/pinia.
+ * Bridge v14 — /gofun → Supabase Edge (Pro aposta 777).
+ * CRÍTICO: token do jogador (ch7.*) NÃO pode ir só em Authorization.
+ * v14: FORÇA host nativo *.supabase.co (csdzxeohpgnvvewnwxod) para XHR/apikey
+ *      sempre bater — custom domain sozinho falhava em alguns caminhos axios.
+ * v13: isEdgeMapped no XHR/axios.
  */
 (function () {
   'use strict';
-  if (window.__ch7GofunBridgeV13) return;
+  if (window.__ch7GofunBridgeV14) return;
+  window.__ch7GofunBridgeV14 = 1;
   window.__ch7GofunBridgeV13 = 1;
   window.__ch7GofunBridgeV12 = 1;
   window.__ch7GofunBridgeV11 = 1;
@@ -19,8 +17,9 @@
   window.__ch7GofunBridgeV8 = 1;
   window.__ch7GofunBridgeV7 = 1;
 
-  // Defaults Pro (aposta 777) — sobrescritos por /static/supabase-config.json se disponível
-  var EDGE = 'https://api.chinesinha777.bet/functions/v1';
+  // Pro aposta 777 — SEMPRE host nativo (contém supabase.co → auth XHR 100%)
+  var PRO_REF = 'csdzxeohpgnvvewnwxod';
+  var EDGE = 'https://' + PRO_REF + '.supabase.co/functions/v1';
   var GOFUN = EDGE + '/gofun';
   var ANON =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzZHp4ZW9ocGdudnZld253eG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MjY3ODQsImV4cCI6MjA5OTQwMjc4NH0.63S2UMqVcfhpZ6EYIrJlrKx9lsrE1rXUw-_7IRxIloA';
@@ -28,17 +27,12 @@
   function applySupabaseCfg(cfg) {
     if (!cfg || typeof cfg !== 'object') return;
     if (cfg.anonKey) ANON = String(cfg.anonKey);
-    if (cfg.gofunApi || cfg.gofun) {
-      GOFUN = String(cfg.gofunApi || cfg.gofun).replace(/\/$/, '');
-      try {
-        var u = new URL(GOFUN);
-        EDGE = u.origin + '/functions/v1';
-      } catch (e0) {}
-    } else if (cfg.customUrl) {
-      EDGE = String(cfg.customUrl).replace(/\/$/, '') + '/functions/v1';
-      GOFUN = EDGE + '/gofun';
-    } else if (cfg.url) {
+    // Preferir SEMPRE URL nativa do projeto Pro (não custom domain) para o gofun
+    if (cfg.url && /supabase\.co/i.test(String(cfg.url))) {
       EDGE = String(cfg.url).replace(/\/$/, '') + '/functions/v1';
+      GOFUN = EDGE + '/gofun';
+    } else if (cfg.projectRef) {
+      EDGE = 'https://' + String(cfg.projectRef) + '.supabase.co/functions/v1';
       GOFUN = EDGE + '/gofun';
     }
     window.__CH7_GOFUN_EDGE__ = GOFUN;
