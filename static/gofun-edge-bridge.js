@@ -1,14 +1,15 @@
 /**
- * Bridge v15 — /gofun → Supabase Edge (Pro aposta 777).
- * CRÍTICO: token do jogador (ch7.*) NÃO pode ir só em Authorization.
- * v15: reescreve Icons firstpage p/ URL absoluta same-origin (SPA não prefixa CDN)
+ * Bridge v15 â€” /gofun â†’ Supabase Edge (Pro aposta 777).
+ * CRÃTICO: token do jogador (ch7.*) NÃƒO pode ir sÃ³ em Authorization.
+ * v15: reescreve Icons firstpage p/ URL absoluta same-origin (SPA nÃ£o prefixa CDN)
  *      + log debug (__CHINESINHA_DEBUG__ / ?debug=1)
- * v14: FORÇA host nativo *.supabase.co (csdzxeohpgnvvewnwxod) para XHR/apikey
+ * v14: FORÃ‡A host nativo *.supabase.co (jfevwnfvmifuwmeyvhft) para XHR/apikey
  * v13: isEdgeMapped no XHR/axios.
  */
 (function () {
   'use strict';
-  if (window.__ch7GofunBridgeV15) return;
+  if (window.__ch7GofunBridgeV16) return;
+  window.__ch7GofunBridgeV16 = 1;
   window.__ch7GofunBridgeV15 = 1;
   window.__ch7GofunBridgeV14 = 1;
   window.__ch7GofunBridgeV13 = 1;
@@ -45,7 +46,7 @@
 
   /**
    * AES-128-ECB raw Base64 (igual Node createCipheriv / SPA).
-   * NÃO usar CryptoJS.AES.encrypt().toString() (formato Salted__ OpenSSL).
+   * NÃƒO usar CryptoJS.AES.encrypt().toString() (formato Salted__ OpenSSL).
    */
   function aesDecrypt(b64) {
     var C = window.CryptoJS;
@@ -77,7 +78,7 @@
         mode: C.mode.ECB,
         padding: C.pad.Pkcs7,
       });
-      // só ciphertext raw em Base64 (compatível com gofunJson / SPA)
+      // sÃ³ ciphertext raw em Base64 (compatÃ­vel com gofunJson / SPA)
       return C.enc.Base64.stringify(enc.ciphertext);
     } catch (e) {
       return null;
@@ -134,7 +135,7 @@
     return n;
   }
 
-  /** Reescreve resposta AES firstpage: Icons → absolute same-origin */
+  /** Reescreve resposta AES firstpage: Icons â†’ absolute same-origin */
   function rewriteFirstpageBody(raw) {
     if (!raw || typeof raw !== 'string') return raw;
     var text = raw.trim();
@@ -162,14 +163,14 @@
         ok: j.code === 0 || j.code === '0',
       };
       dbg('firstpage rewrite games=' + count + ' coversFixed=' + fixed);
-      if (fixed === 0) return raw; // nada mudou — não re-encripta
+      if (fixed === 0) return raw; // nada mudou â€” nÃ£o re-encripta
       if (!wasAes) return JSON.stringify(j);
       var enc = aesEncrypt(j);
       if (!enc) return raw;
       // sanity: re-decrypt deve funcionar
       var check = aesDecrypt(enc);
       if (!check || check.indexOf('"code"') < 0) {
-        dbg('re-encrypt sanity fail — keep original');
+        dbg('re-encrypt sanity fail â€” keep original');
         return raw;
       }
       return enc;
@@ -223,17 +224,16 @@
     });
   }
 
-  // Pro aposta 777 — SEMPRE host nativo (contém supabase.co → auth XHR 100%)
-  var PRO_REF = 'csdzxeohpgnvvewnwxod';
+  // Pro aposta 777 â€” SEMPRE host nativo (contÃ©m supabase.co â†’ auth XHR 100%)
+  var PRO_REF = 'jfevwnfvmifuwmeyvhft';
   var EDGE = 'https://' + PRO_REF + '.supabase.co/functions/v1';
   var GOFUN = EDGE + '/gofun';
-  var ANON =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzZHp4ZW9ocGdudnZld253eG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MjY3ODQsImV4cCI6MjA5OTQwMjc4NH0.63S2UMqVcfhpZ6EYIrJlrKx9lsrE1rXUw-_7IRxIloA';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZXZ3bmZ2bWlmdXdtZXl2aGZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4Mzg5NjMsImV4cCI6MjA5OTQxNDk2M30.npBLVpDlIjauP2SwrAa4iVwmo8Ue23R91VTCaxEcYiI';
 
   function applySupabaseCfg(cfg) {
     if (!cfg || typeof cfg !== 'object') return;
     if (cfg.anonKey) ANON = String(cfg.anonKey);
-    // Preferir SEMPRE URL nativa do projeto Pro (não custom domain) para o gofun
+    // Preferir SEMPRE URL nativa do projeto Pro (nÃ£o custom domain) para o gofun
     if (cfg.url && /supabase\.co/i.test(String(cfg.url))) {
       EDGE = String(cfg.url).replace(/\/$/, '') + '/functions/v1';
       GOFUN = EDGE + '/gofun';
@@ -246,7 +246,7 @@
     window.__CH7_ANON__ = ANON;
   }
 
-  // Config síncrono se boot já rodou; senão fetch assíncrono
+  // Config sÃ­ncrono se boot jÃ¡ rodou; senÃ£o fetch assÃ­ncrono
   if (window.__CH7_SUPABASE__ && window.__CH7_SUPABASE__.url) {
     applySupabaseCfg(window.__CH7_SUPABASE__);
   } else {
@@ -278,12 +278,12 @@
       .trim();
     if (!s) return false;
     if (s.indexOf('ch7.') === 0 || s.indexOf('ch7_') === 0) return true;
-    // token gofun legado (não JWT)
+    // token gofun legado (nÃ£o JWT)
     if (s.indexOf('eyJ') === 0) return false;
     return s.length >= 12 && s.indexOf('.') !== -1;
   }
 
-  /** Token salvo pelo SPA/pinia quando o header Authorization não carrega ch7.* */
+  /** Token salvo pelo SPA/pinia quando o header Authorization nÃ£o carrega ch7.* */
   function getStoredPlayerToken() {
     try {
       var keys = [
@@ -315,7 +315,7 @@
           } catch (e1) {}
         }
       }
-      // pinia persist keys genéricas
+      // pinia persist keys genÃ©ricas
       for (var k = 0; k < localStorage.length; k++) {
         var key = localStorage.key(k) || '';
         if (!/auth|user|token|persist/i.test(key)) continue;
@@ -433,24 +433,24 @@
     );
   }
 
-  /** Local dev: server.mjs tem P0 (vip/shop/auth) — NÃO mandar pro Edge vazio */
+  /** Local dev: server.mjs tem P0 (vip/shop/auth) â€” NÃƒO mandar pro Edge vazio */
   function isLocalDev() {
     var h = location.hostname || '';
     return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
   }
 
-  /** /painel/* não existe no GH Pages — reescreve ou stub. */
+  /** /painel/* nÃ£o existe no GH Pages â€” reescreve ou stub. */
   function mapPainelUrl(u) {
     try {
       var url = new URL(u, location.href);
       if (!/\/painel\//i.test(url.pathname) && !/deposit-bonuses/i.test(url.pathname + url.search)) {
         return null;
       }
-      // deposit-bonuses → JSON estático (sem 404)
+      // deposit-bonuses â†’ JSON estÃ¡tico (sem 404)
       if (/deposit-bonuses/i.test(url.pathname)) {
         return location.origin + '/static/deposit-bonuses.json';
       }
-      // outros endpoints do painel em prod estático → stub vazio
+      // outros endpoints do painel em prod estÃ¡tico â†’ stub vazio
       if (isStaticProdHost() && /\/painel\//i.test(url.pathname)) {
         return '__ch7_stub_empty_json__';
       }
@@ -491,7 +491,7 @@
       if (!isOurHost(url.hostname) && u.indexOf('/gofun/') === -1) return u;
 
       if (url.pathname.indexOf('/gofun') === 0) {
-        // localhost → same-origin (front/server.mjs com List VIP completa)
+        // localhost â†’ same-origin (front/server.mjs com List VIP completa)
         if (isLocalDev()) {
           return location.origin + url.pathname + url.search;
         }
@@ -579,13 +579,13 @@
       if (/firstpage/i.test(String(mapped || '')) || /firstpage/i.test(String(url || ''))) {
         attachFirstpageRewrite(this);
       }
-      if (mapped !== url) dbg('XHR map', url, '→', mapped);
+      if (mapped !== url) dbg('XHR map', url, 'â†’', mapped);
     } catch (e) {}
     return XO.apply(this, arguments);
   };
   XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
     try {
-      // v13: custom domain api.chinesinha777.bet também é Edge (não só *.supabase.co)
+      // v13: custom domain api.chinesinha777.bet tambÃ©m Ã© Edge (nÃ£o sÃ³ *.supabase.co)
       if (this.__ch7Url && isEdgeMapped(this.__ch7Url)) {
         if (/^authorization$/i.test(String(name || ''))) {
           var v = String(value || '')
@@ -593,7 +593,7 @@
             .trim();
           if (isPlayerToken(v)) {
             this.__ch7PlayerTok = v;
-            // não envia ch7 no Authorization — gateway Supabase quebra a sessão
+            // nÃ£o envia ch7 no Authorization â€” gateway Supabase quebra a sessÃ£o
             try {
               XSR.call(this, 'x-player-token', v);
             } catch (e1) {}
@@ -613,7 +613,7 @@
         try {
           this.setRequestHeader('apikey', ANON);
         } catch (e) {}
-        // fallback: SPA pode não ter setado Authorization (só token no pinia)
+        // fallback: SPA pode nÃ£o ter setado Authorization (sÃ³ token no pinia)
         if (!this.__ch7PlayerTok || !isPlayerToken(this.__ch7PlayerTok)) {
           this.__ch7PlayerTok = getStoredPlayerToken() || this.__ch7PlayerTok || '';
         }
@@ -649,7 +649,7 @@
         ax.interceptors.request.use(function (config) {
           if (config && config.url) {
             config.url = mapUrl(config.url);
-            // v13: custom domain também precisa apikey + Authorization ANON
+            // v13: custom domain tambÃ©m precisa apikey + Authorization ANON
             if (isEdgeMapped(config.url)) {
               config.headers = config.headers || {};
               var auth =
@@ -659,7 +659,7 @@
               var tok = String(auth)
                 .replace(/^Bearer\s+/i, '')
                 .trim();
-              // SPA auth store às vezes só no default header
+              // SPA auth store Ã s vezes sÃ³ no default header
               if (!isPlayerToken(tok) && ax.defaults && ax.defaults.headers) {
                 var d =
                   (ax.defaults.headers.common && ax.defaults.headers.common.Authorization) ||
@@ -669,7 +669,7 @@
                   .replace(/^Bearer\s+/i, '')
                   .trim() || tok;
               }
-              // pinia / localStorage fallback (depósito PIX)
+              // pinia / localStorage fallback (depÃ³sito PIX)
               if (!isPlayerToken(tok)) {
                 tok = getStoredPlayerToken() || tok;
               }

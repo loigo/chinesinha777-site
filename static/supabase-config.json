@@ -1,7 +1,7 @@
 {
-  "url": "https://csdzxeohpgnvvewnwxod.supabase.co",
-  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzZHp4ZW9ocGdudnZld253eG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MjY3ODQsImV4cCI6MjA5OTQwMjc4NH0.63S2UMqVcfhpZ6EYIrJlrKx9lsrE1rXUw-_7IRxIloA",
-  "projectRef": "csdzxeohpgnvvewnwxod",
+  "url": "https://jfevwnfvmifuwmeyvhft.supabase.co",
+  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZXZ3bmZ2bWlmdXdtZXl2aGZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4Mzg5NjMsImV4cCI6MjA5OTQxNDk2M30.npBLVpDlIjauP2SwrAa4iVwmo8Ue23R91VTCaxEcYiI",
+  "projectRef": "jfevwnfvmifuwmeyvhft",
   "region": "sa-east-1",
   "plan": "pro",
   "customUrl": "https://api.chinesinha777.bet",
@@ -20,6 +20,6 @@
   "onlyPro": true,
   "org": "bet 777",
   "projectName": "aposta 777",
-  "deployedAt": "2026-07-12T06:23:22.628Z",
+  "deployedAt": "2026-07-12T06:54:22.362Z",
   "deployTarget": "supabase-storage-web"
 }
